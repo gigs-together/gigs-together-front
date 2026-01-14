@@ -6,16 +6,17 @@ import { UserModel } from '@/models/User';
 export const dynamic = 'force-dynamic';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     await dbConnect();
 
-    const user = await UserModel.findById(params.id).select('-password');
+    const { id } = await params;
+    const user = await UserModel.findById(id).select('-password');
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
@@ -35,7 +36,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     await dbConnect();
 
     const body = await request.json();
-    const user = await UserModel.findByIdAndUpdate(params.id, body, {
+    const { id } = await params;
+    const user = await UserModel.findByIdAndUpdate(id, body, {
       new: true,
       runValidators: true,
     }).select('-password');
@@ -58,7 +60,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     await dbConnect();
 
-    const user = await UserModel.findByIdAndDelete(params.id);
+    const { id } = await params;
+    const user = await UserModel.findByIdAndDelete(id);
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }

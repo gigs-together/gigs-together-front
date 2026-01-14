@@ -4,9 +4,9 @@ import { NextResponse } from 'next/server';
 const API_BASE_URL = process.env.API_BASE_URL;
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     path: string[];
-  };
+  }>;
 }
 
 export async function GET(req: NextRequest, context: RouteParams) {
@@ -22,7 +22,8 @@ async function handleProxy(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ message: 'Missing API base url (API_BASE_URL)' }, { status: 500 });
   }
 
-  const backendPath = (await params).path.join('/');
+  const { path } = await params;
+  const backendPath = path.join('/');
   const targetUrl = `${API_BASE_URL}/${backendPath}`;
 
   try {

@@ -6,16 +6,17 @@ import { EventModel } from '@/models/Event';
 export const dynamic = 'force-dynamic';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     await dbConnect();
 
-    const event = await EventModel.findById(params.id);
+    const { id } = await params;
+    const event = await EventModel.findById(id);
     if (!event) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
@@ -35,7 +36,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     await dbConnect();
 
     const body = await request.json();
-    const event = await EventModel.findByIdAndUpdate(params.id, body, {
+    const { id } = await params;
+    const event = await EventModel.findByIdAndUpdate(id, body, {
       new: true,
       runValidators: true,
     });
@@ -58,7 +60,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     await dbConnect();
 
-    const event = await EventModel.findByIdAndDelete(params.id);
+    const { id } = await params;
+    const event = await EventModel.findByIdAndDelete(id);
     if (!event) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
