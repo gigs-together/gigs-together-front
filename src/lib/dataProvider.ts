@@ -1,7 +1,7 @@
 import type { DataProvider } from 'react-admin';
 import { fetchUtils } from 'react-admin';
 
-const apiUrl = '/api/admin';
+const apiUrl = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || '/api/admin';
 const httpClient = fetchUtils.fetchJson;
 
 export const dataProvider: DataProvider = {

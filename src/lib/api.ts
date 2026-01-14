@@ -1,15 +1,28 @@
-export async function apiRequest<T>(
-  endpoint: string,
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
-  data?: T,
-): Promise<T> {
+type HttpMethod = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+function buildUrl(endpointOrUrl: string): string {
+  // If caller already passed an absolute URL, use it as-is.
+  if (/^https?:\/\//i.test(endpointOrUrl)) return endpointOrUrl;
+  if (!API_BASE_URL) {
+    throw new Error('Missing NEXT_PUBLIC_API_BASE_URL for direct API calls');
+  }
+  return `${API_BASE_URL.replace(/\/$/, '')}/${endpointOrUrl.replace(/^\//, '')}`;
+}
+
+export async function apiRequest<TResponse = unknown, TBody = unknown>(
+  endpointOrUrl: string,
+  method: HttpMethod,
+  data?: TBody,
+): Promise<TResponse> {
   try {
-    const response = await fetch(`/api/proxy/${endpoint}`, {
+    const response = await fetch(buildUrl(endpointOrUrl), {
       method,
       headers: {
         'Content-Type': 'application/json', // multipart/form-data
       },
-      body: method !== 'GET' && data ? JSON.stringify(data) : undefined,
+      body: method !== 'GET' && method !== 'HEAD' && data ? JSON.stringify(data) : undefined,
     });
 
     const contentType = response.headers.get('Content-Type') || '';
@@ -23,7 +36,7 @@ export async function apiRequest<T>(
       );
     }
 
-    return result;
+    return result as TResponse;
   } catch (e) {
     console.error('API Error:', e);
     throw e;
