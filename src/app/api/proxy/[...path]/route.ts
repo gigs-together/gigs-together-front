@@ -18,7 +18,11 @@ export async function POST(req: NextRequest, context: RouteParams) {
 }
 
 async function handleProxy(req: NextRequest, { params }: RouteParams) {
-  const backendPath = params.path.join('/');
+  if (!API_BASE_URL) {
+    return NextResponse.json({ message: 'Missing API base url (API_BASE_URL)' }, { status: 500 });
+  }
+
+  const backendPath = (await params).path.join('/');
   const targetUrl = `${API_BASE_URL}/${backendPath}`;
 
   try {

@@ -7,8 +7,10 @@ import { toLocalYMD } from '@/lib/utils';
 import './style.css';
 import { MonthSection } from './components/MonthSection';
 import { Card } from './components/GigCard';
-import type { Event } from '@/types';
+import type { Event, V1GigGetResponseBody } from '@/types';
 import { FaRegCalendar } from 'react-icons/fa';
+import { apiRequest } from '@/lib/api';
+import { gigDtoToEvent } from '@/lib/gigs';
 
 const DEFAULT_LOCALE = 'en-US';
 
@@ -22,7 +24,9 @@ const formatMonthTitle = (date: string): string => {
 
 const formatFullDate = (dateString?: string) => {
   if (!dateString) return '';
-  const d = new Date(dateString);
+  // Parse as local date to avoid timezone shifts (don't use new Date("YYYY-MM-DD"))
+  const [y, m, day] = dateString.split('-').map(Number);
+  const d = new Date(y, (m ?? 1) - 1, day ?? 1);
   return d.toLocaleDateString(DEFAULT_LOCALE, {
     weekday: 'short',
     month: 'short',
@@ -103,14 +107,9 @@ export default function Home() {
     const fetchEvents = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/admin/events?_start=0&_end=1000&_sort=date&_order=ASC');
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch events');
-        }
-
-        const eventsData = await response.json();
-        setEvents(eventsData);
+        const res = await apiRequest<V1GigGetResponseBody>('v1/gig', 'GET');
+        const mapped = res.gigs.map(gigDtoToEvent).sort((a, b) => a.date.localeCompare(b.date));
+        setEvents(mapped);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
