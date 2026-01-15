@@ -14,6 +14,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { toast } from '@/hooks/use-toast';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import Script from 'next/script';
@@ -38,7 +39,9 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function GigForm() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [photoMode, setPhotoMode] = useState<'upload' | 'url'>('upload');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string>('');
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -55,7 +58,7 @@ export default function GigForm() {
     try {
       const telegramInitDataString = window.Telegram?.WebApp?.initData ?? '';
 
-      if (photoFile) {
+      if (photoMode === 'upload' && photoFile) {
         // Backend expects: FileInterceptor('photo') + @Body()
         const fd = new FormData();
         fd.append('photo', photoFile);
@@ -63,6 +66,26 @@ export default function GigForm() {
         fd.append('gig', JSON.stringify(values));
         fd.append('telegramInitDataString', telegramInitDataString);
         await apiRequest<void, FormData>('v1/receiver/gig', 'POST', fd);
+      } else if (photoMode === 'url') {
+        const trimmed = photoUrl.trim();
+        try {
+          // Validate URL format
+           
+          new URL(trimmed);
+        } catch {
+          toast({
+            title: 'Invalid photo URL',
+            description: 'Please paste a valid image URL.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        const data = {
+          gig: { ...values, photo: trimmed },
+          telegramInitDataString,
+        };
+        await apiRequest('v1/receiver/gig', 'POST', data);
       } else {
         const data = { gig: values, telegramInitDataString };
         await apiRequest('v1/receiver/gig', 'POST', data);
@@ -115,7 +138,7 @@ export default function GigForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Input placeholder="Gig title" {...field} />
+                      <Input placeholder="Gig title" {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormDescription>Enter the title of a gig.</FormDescription>
                     <FormMessage />
@@ -128,7 +151,7 @@ export default function GigForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormDescription>Select the date of a gig.</FormDescription>
                     <FormMessage />
@@ -141,7 +164,7 @@ export default function GigForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Input placeholder="Location" {...field} />
+                      <Input placeholder="Location" {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormDescription>Enter location for a gig.</FormDescription>
                     <FormMessage />
@@ -154,7 +177,7 @@ export default function GigForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Input placeholder="Ticket URL" {...field} />
+                      <Input placeholder="Ticket URL" {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormDescription>Enter the URL where tickets can be purchased.</FormDescription>
                     <FormMessage />
@@ -162,14 +185,51 @@ export default function GigForm() {
                 )}
               />
               <FormItem>
+                <div className="space-y-2">
+                  <FormDescription>Photo (optional)</FormDescription>
+                  <ToggleGroup
+                    type="single"
+                    value={photoMode}
+                    onValueChange={(v) => {
+                      const next = (v as 'upload' | 'url') || photoMode;
+                      setPhotoMode(next);
+                      if (next === 'upload') {
+                        setPhotoUrl('');
+                      } else {
+                        setPhotoFile(null);
+                      }
+                    }}
+                    className="justify-start"
+                  >
+                    <ToggleGroupItem type="button" value="upload" aria-label="Upload photo">
+                      Upload
+                    </ToggleGroupItem>
+                    <ToggleGroupItem type="button" value="url" aria-label="Use photo URL">
+                      URL
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
                 <FormControl>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
-                  />
+                  {photoMode === 'upload' ? (
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
+                    />
+                  ) : (
+                    <Input
+                      type="url"
+                      placeholder="https://example.com/photo.jpg"
+                      value={photoUrl ?? ''}
+                      onChange={(e) => setPhotoUrl(e.target.value)}
+                    />
+                  )}
                 </FormControl>
-                <FormDescription>Optional: upload a photo (max 10MB, image only).</FormDescription>
+                <FormDescription>
+                  {photoMode === 'upload'
+                    ? 'Upload an image file (max 10MB).'
+                    : 'Paste a direct image URL.'}
+                </FormDescription>
               </FormItem>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Submitting...' : 'Suggest'}
