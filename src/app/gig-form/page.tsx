@@ -38,6 +38,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function GigForm() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -52,11 +53,20 @@ export default function GigForm() {
   async function onSubmit(values: FormValues) {
     setIsSubmitting(true);
     try {
-      const data = {
-        gig: values,
-        telegramInitDataString: window.Telegram?.WebApp?.initData,
-      };
-      await apiRequest('v1/telegram/gig', 'POST', data);
+      const telegramInitDataString = window.Telegram?.WebApp?.initData ?? '';
+
+      if (photoFile) {
+        // Backend expects: FileInterceptor('photo') + @Body()
+        const fd = new FormData();
+        fd.append('photo', photoFile);
+        // Send body as string fields (Nest multer parses multipart fields as strings)
+        fd.append('gig', JSON.stringify(values));
+        fd.append('telegramInitDataString', telegramInitDataString);
+        await apiRequest<void, FormData>('v1/receiver/gig', 'POST', fd);
+      } else {
+        const data = { gig: values, telegramInitDataString };
+        await apiRequest('v1/receiver/gig', 'POST', data);
+      }
 
       toast({
         title: 'Gig submitted',
@@ -151,6 +161,16 @@ export default function GigForm() {
                   </FormItem>
                 )}
               />
+              <FormItem>
+                <FormControl>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
+                  />
+                </FormControl>
+                <FormDescription>Optional: upload a photo (max 10MB, image only).</FormDescription>
+              </FormItem>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Submitting...' : 'Suggest'}
               </Button>

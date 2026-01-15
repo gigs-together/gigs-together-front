@@ -17,12 +17,17 @@ export async function apiRequest<TResponse = unknown, TBody = unknown>(
   data?: TBody,
 ): Promise<TResponse> {
   try {
+    const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
+
     const response = await fetch(buildUrl(endpointOrUrl), {
       method,
-      headers: {
-        'Content-Type': 'application/json', // multipart/form-data
-      },
-      body: method !== 'GET' && method !== 'HEAD' && data ? JSON.stringify(data) : undefined,
+      headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
+      body:
+        method !== 'GET' && method !== 'HEAD' && data
+          ? isFormData
+            ? (data as unknown as FormData)
+            : JSON.stringify(data)
+          : undefined,
     });
 
     const contentType = response.headers.get('Content-Type') || '';
