@@ -30,6 +30,7 @@ export default function Header({ earliestEventDate, onDayClick, availableDates }
               type="button"
               className="flex items-center gap-2 text-base font-normal text-gray-800"
               aria-label="Current location"
+              title="Currently, we only support one location."
             >
               <svg
                 className="h-4 w-4"

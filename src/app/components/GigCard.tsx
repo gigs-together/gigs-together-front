@@ -12,13 +12,7 @@ export function Card({ gig }: CardProps) {
   return (
     <div className="flex flex-col bg-white rounded-lg dark:bg-gray-800 dark:border-gray-700">
       {gig.cover ? (
-        <a
-          href={href}
-          target={href ? '_blank' : undefined}
-          rel={href ? 'noopener noreferrer' : undefined}
-        >
-          <img className="rounded-lg aspect-[5/3] object-cover" src={gig.cover} alt={gig.title} />
-        </a>
+        <img className="rounded-lg aspect-[5/3] object-cover" src={gig.cover} alt={gig.title} />
       ) : (
         <div className="rounded-lg aspect-[5/3] bg-gray-100 dark:bg-gray-700" aria-hidden />
       )}
@@ -28,7 +22,11 @@ export function Card({ gig }: CardProps) {
             href={href}
             target={href ? '_blank' : undefined}
             rel={href ? 'noopener noreferrer' : undefined}
-            className={href ? '' : 'pointer-events-none'}
+            className={
+              href
+                ? 'transition-colors hover:text-gray-500 dark:hover:text-violet-400 cursor-pointer'
+                : 'pointer-events-none'
+            }
           >
             <span className="mb-2 tracking-tight dark:text-white font-bold">{gig.title}</span>
           </a>
