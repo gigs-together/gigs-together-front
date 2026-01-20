@@ -260,7 +260,7 @@ export default function Home() {
               <p className="text-gray-500 mt-2">Check back later for upcoming events!</p>
             </div>
           ) : (
-            months.map((day) => {
+            months.map((day, monthIdx) => {
               const eventsByDay: Record<string, Event[]> = {};
               day.events.forEach((ev) => {
                 eventsByDay[ev.date] = eventsByDay[ev.date] || [];
@@ -273,13 +273,13 @@ export default function Home() {
                 <MonthSection key={day.date} title={formatMonthTitle(day.date)} date={day.date}>
                   {orderedDates.map((dateStr, i) => (
                     <div key={dateStr} className="contents">
-                      {i === 0 ? (
-                        <div
-                          data-date={dateStr}
-                          className="col-span-full h-0 overflow-hidden scroll-mt-[calc(var(--header-h)_-_10px)]"
-                          aria-hidden
-                        />
-                      ) : (
+                      <div
+                        data-date={dateStr}
+                        className="col-span-full h-0 overflow-hidden scroll-mt-[calc(var(--header-h)_-_10px)]"
+                        aria-hidden
+                      />
+
+                      {monthIdx === 0 && i === 0 ? null : (
                         <div className="col-span-full">
                           <div
                             data-date={dateStr}
