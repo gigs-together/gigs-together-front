@@ -22,7 +22,6 @@ export type Event = {
 
 export interface V1GigGetResponseBody {
   gigs: GigDto[];
-  isLastPage: boolean;
 }
 
 export interface GigDto {

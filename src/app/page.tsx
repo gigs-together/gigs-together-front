@@ -13,6 +13,7 @@ import { apiRequest } from '@/lib/api';
 import { gigDtoToEvent } from '@/lib/gigs';
 
 const DEFAULT_LOCALE = 'en-US';
+const PAGE_SIZE = 30;
 
 const formatMonthTitle = (date: string): string => {
   return (
@@ -69,7 +70,10 @@ export default function Home() {
 
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   // Raw date from observer (updates on every scroll tick)
   const [rawVisibleEventDate, setRawVisibleEventDate] = useState<string | undefined>();
   // Debounced date passed to the header (stabilized)
@@ -79,6 +83,9 @@ export default function Home() {
   const scrollContainerRef = useRef<HTMLElement>();
   const headerOffsetHeightRef = useRef<number>();
   const anchorsRef = useRef<HTMLElement[]>([]);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const inFlightRef = useRef(false);
+  const hasUserScrolledRef = useRef(false);
 
   // list of dates that actually have events (YYYY-MM-DD) — used to disable other days in the calendar
   const availableDates = useMemo(() => {
@@ -101,22 +108,84 @@ export default function Home() {
     headerOffsetHeightRef.current = headerH;
   }, [headerH]);
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
+  const fetchPage = useCallback(async (nextPage: number, mode: 'replace' | 'append') => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+
+    const qs = new URLSearchParams();
+    qs.set('page', String(nextPage));
+    qs.set('size', String(PAGE_SIZE));
+
+    try {
+      if (mode === 'replace') {
         setLoading(true);
-        const res = await apiRequest<V1GigGetResponseBody>('v1/gig', 'GET');
-        const mapped = res.gigs.map(gigDtoToEvent).sort((a, b) => a.date.localeCompare(b.date));
-        setEvents(mapped);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
+        setError(null);
+      } else {
+        setLoadingMore(true);
       }
+
+      const res = await apiRequest<V1GigGetResponseBody>(`v1/gig?${qs.toString()}`, 'GET');
+
+      const pageOffset = (nextPage - 1) * PAGE_SIZE;
+      const mapped = res.gigs.map((gig, idx) => gigDtoToEvent(gig, pageOffset + idx));
+
+      setEvents((prev) => {
+        const merged = mode === 'replace' ? mapped : [...prev, ...mapped];
+        // Important: don't de-dupe on date/title/etc, otherwise distinct events can disappear.
+        merged.sort((a, b) => a.date.localeCompare(b.date));
+        return merged;
+      });
+
+      setPage(nextPage);
+      // Stop when backend returns fewer than requested (or nothing).
+      setHasMore(res.gigs.length === PAGE_SIZE);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+      inFlightRef.current = false;
+    }
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    fetchPage(1, 'replace');
+  }, [fetchPage]);
+
+  // Don't auto-load more until the user scrolls (prevents "burst" requests on short lists)
+  useEffect(() => {
+    const onScroll = () => {
+      hasUserScrolledRef.current = true;
     };
 
-    fetchEvents();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  // Infinite scroll: when sentinel becomes visible, load next page
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el) return;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        const hit = entries.some((e) => e.isIntersecting);
+        if (!hit) return;
+        if (!hasUserScrolledRef.current) return;
+        if (loading || loadingMore || !hasMore) return;
+        fetchPage(page + 1, 'append');
+      },
+      {
+        root: null, // viewport (works with window scroll)
+        rootMargin: '400px 0px',
+        threshold: 0,
+      },
+    );
+
+    io.observe(el);
+    return () => io.disconnect();
+  }, [loading, loadingMore, hasMore, page, fetchPage]);
 
   const eventsByMonth = useMemo(() => {
     const grouped: Record<string, Event[]> = {};
@@ -306,6 +375,10 @@ export default function Home() {
               );
             })
           )}
+
+          {/* Infinite scroll sentinel */}
+          <div ref={loadMoreRef} className="h-12" aria-hidden />
+          {loadingMore ? <div className="py-4 text-center text-gray-500">Loading more…</div> : null}
         </div>
       </main>
     </div>
