@@ -1,6 +1,6 @@
 import TopForm from '@/app/components/TopForm';
 import React from 'react';
-import { FaTelegramPlane } from 'react-icons/fa';
+import { FaGithub, FaTelegramPlane } from 'react-icons/fa';
 
 interface HeaderProps {
   earliestEventDate?: string;
@@ -9,6 +9,9 @@ interface HeaderProps {
 }
 
 export default function Header({ earliestEventDate, onDayClick, availableDates }: HeaderProps) {
+  const telegramUrl = process.env.NEXT_PUBLIC_TELEGRAM_URL;
+  const githubUrl = process.env.NEXT_PUBLIC_GITHUB_URL;
+
   return (
     <header data-app-header className="bg-background border-b fixed top-0 left-0 w-full z-50">
       <div className="w-full px-4 py-2">
@@ -47,9 +50,22 @@ export default function Header({ earliestEventDate, onDayClick, availableDates }
               </svg>
               Barcelona
             </button>
-            <a href="https://t.me/gigs_together_bcn" target="_blank" rel="noopener noreferrer">
-              <FaTelegramPlane className="text-xl text-black-500 hover:text-black-700" />
-            </a>
+            {!!telegramUrl && (
+              <a href={telegramUrl} target="_blank" rel="noopener noreferrer">
+                <FaTelegramPlane className="text-xl text-black-500 hover:text-black-700" />
+              </a>
+            )}
+            {!!githubUrl && (
+              <a
+                href={githubUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="GitHub"
+                title="GitHub"
+              >
+                <FaGithub className="text-xl text-black-500 hover:text-black-700" />
+              </a>
+            )}
           </div>
         </div>
       </div>
