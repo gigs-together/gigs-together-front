@@ -10,11 +10,15 @@ export function Card({ gig }: CardProps) {
   const href = gig.ticketsUrl || undefined;
 
   return (
-    <div className="flex flex-col bg-white rounded-lg dark:bg-gray-800 dark:border-gray-700">
+    <div className="flex w-full flex-col bg-white rounded-lg dark:bg-gray-800 dark:border-gray-700">
       {gig.cover ? (
-        <img className="rounded-lg aspect-[5/3] object-cover" src={gig.cover} alt={gig.title} />
+        <img
+          className="block w-full rounded-lg aspect-[5/3] object-cover"
+          src={gig.cover}
+          alt={gig.title}
+        />
       ) : (
-        <div className="rounded-lg aspect-[5/3] bg-gray-100 dark:bg-gray-700" aria-hidden />
+        <div className="w-full rounded-lg aspect-[5/3] bg-gray-100 dark:bg-gray-700" aria-hidden />
       )}
       <div className="p-2">
         <div className="flex flex-row gap-4 items-center">
