@@ -4,6 +4,7 @@ import TopForm from '@/app/components/TopForm';
 import React from 'react';
 import { FaBars, FaGithub, FaTelegramPlane } from 'react-icons/fa';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { LocationIcon } from '@/components/icons/location-icon';
 
 interface HeaderProps {
   earliestEventDate?: string;
@@ -49,19 +50,7 @@ export default function Header({ earliestEventDate, onDayClick, availableDates }
                     aria-label="Current location"
                     title="Location"
                   >
-                    <svg
-                      className="h-4 w-4"
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
+                    <LocationIcon className="h-4 w-4" />
                     Barcelona
                   </button>
                 </PopoverTrigger>
@@ -109,19 +98,7 @@ export default function Header({ earliestEventDate, onDayClick, availableDates }
                           className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm text-gray-800 hover:bg-muted"
                           aria-label="Current location"
                         >
-                          <svg
-                            className="h-4 w-4"
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                            <circle cx="12" cy="10" r="3" />
-                          </svg>
+                          <LocationIcon className="h-4 w-4" />
                           Barcelona
                         </button>
                       </PopoverTrigger>

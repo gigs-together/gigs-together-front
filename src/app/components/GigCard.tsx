@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FaUsers } from 'react-icons/fa';
 import type { Event } from '@/types';
+import { LocationIcon } from '@/components/icons/location-icon';
 
 type CardProps = {
   gig: Event;
@@ -72,7 +73,10 @@ export function Card({ gig }: CardProps) {
             </p>
           ) : null}
         </div>
-        <div className="flex flex-row gap-2 items-center text-gray-500">{gig.venueAddress}</div>
+        <div className="flex flex-row gap-2 items-center text-gray-500">
+          <LocationIcon className="h-4 w-4" aria-hidden />
+          <span>{gig.venueAddress}</span>
+        </div>
       </div>
     </div>
   );
