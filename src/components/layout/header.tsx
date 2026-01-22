@@ -18,9 +18,12 @@ export default function Header({ earliestEventDate, onDayClick, availableDates }
   const [locationTipOpen, setLocationTipOpen] = React.useState(false);
 
   return (
-    <header data-app-header className="bg-background border-b fixed top-0 left-0 w-full z-50">
-      <div className="w-full px-4 py-2">
-        <div className="flex items-center w-full">
+    <header
+      data-app-header
+      className="bg-background border-b fixed top-0 left-0 w-full z-50 h-[45px]"
+    >
+      <div className="w-full px-4 h-full">
+        <div className="flex items-center w-full h-full">
           <div className="basis-0 flex-1 shrink-1">
             <h1 className="text-xl font-semibold whitespace-nowrap">
               Gigs<span className="hidden sm:inline"> Together</span>!
@@ -93,8 +96,8 @@ export default function Header({ earliestEventDate, onDayClick, availableDates }
             <div className="sm:hidden">
               <Popover open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <PopoverTrigger asChild>
-                  <button type="button" aria-label="Menu" className="p-2">
-                    <FaBars className="text-xl text-black-500 hover:text-black-700" />
+                  <button type="button" aria-label="Menu" className="py-1.5 px-0">
+                    <FaBars className="text-base text-black-500 hover:text-black-700" />
                   </button>
                 </PopoverTrigger>
                 <PopoverContent align="end" className="w-56 p-2">
