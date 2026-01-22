@@ -23,7 +23,7 @@ export default function Header({ earliestEventDate, onDayClick, availableDates }
         <div className="flex items-center w-full">
           <div className="basis-0 flex-1 shrink-1">
             <h1 className="text-xl font-semibold whitespace-nowrap">
-              Gigs <span className="hidden sm:inline">Together</span>
+              Gigs<span className="hidden sm:inline"> Together</span>!
             </h1>
           </div>
           <div className="flex-1"></div>
