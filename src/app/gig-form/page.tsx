@@ -11,6 +11,7 @@ import {
   FormDescription,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,8 @@ import { toast } from '@/hooks/use-toast';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import Script from 'next/script';
 import { apiRequest } from '@/lib/api';
+import { Separator } from '@/components/ui/separator';
+import countriesJson from '../../../countries.json';
 
 const formSchema = z.object({
   title: z.string().min(2, {
@@ -27,9 +30,9 @@ const formSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'Date must be in YYYY-MM-DD format.',
   }),
-  location: z.string().min(2, {
-    message: 'Please enter location.',
-  }),
+  city: z.string().min(1, { message: 'City is required.' }),
+  country: z.string().min(1, { message: 'Country is required.' }), // ISO code
+  venue: z.string().min(2, { message: 'Please enter venue.' }),
   ticketsUrl: z.string().url({
     message: 'Please enter a valid ticket URL.',
   }),
@@ -37,18 +40,58 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+type CountryItem = { iso: string; name: string };
+const COUNTRIES: CountryItem[] = (countriesJson as CountryItem[])
+  .filter((c) => c?.iso && c?.name)
+  .map((c) => ({ iso: String(c.iso).toUpperCase(), name: String(c.name) }));
+
+const COUNTRY_BY_ISO = new Map(COUNTRIES.map((c) => [c.iso, c.name]));
+
+type GigLookupResponse = {
+  title?: string;
+  date?: string;
+  city?: string;
+  country?: string;
+  venue?: string;
+  ticketsUrl?: string;
+  // sometimes APIs wrap payloads ?
+  gig?: GigLookupResponse;
+};
+
+function dateToYMD(date?: string): string | undefined {
+  if (!date) return undefined;
+  const s = String(date).trim();
+  if (!s) return undefined;
+  // ISO "2026-02-15T20:00:00+01:00"
+  if (s.includes('T')) return s.slice(0, 10);
+  // "YYYY-MM-DD"
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return undefined;
+  return d.toISOString().slice(0, 10);
+}
+
+function countryToLabel(country?: string): string | undefined {
+  const c = country?.trim();
+  if (!c) return undefined;
+  return COUNTRY_BY_ISO.get(c.toUpperCase()) ?? c;
+}
+
 export default function GigForm() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [photoMode, setPhotoMode] = useState<'upload' | 'url'>('upload');
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoUrl, setPhotoUrl] = useState<string>('');
+  const [isLookingUp, setIsLookingUp] = useState<boolean>(false);
+  const [posterMode, setPosterMode] = useState<'upload' | 'url'>('upload');
+  const [posterFile, setPosterFile] = useState<File | null>(null);
+  const [posterUrl, setPosterUrl] = useState<string>('');
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
       date: '',
-      location: '',
+      city: 'Barcelona',
+      country: 'ES',
+      venue: '',
       ticketsUrl: '',
     },
   });
@@ -58,23 +101,32 @@ export default function GigForm() {
     try {
       const telegramInitDataString = window.Telegram?.WebApp?.initData ?? '';
 
-      if (photoMode === 'upload' && photoFile) {
-        // Backend expects: FileInterceptor('photo') + @Body()
+      const gig = {
+        title: values.title,
+        date: values.date,
+        city: values.city,
+        country: values.country,
+        venue: values.venue,
+        ticketsUrl: values.ticketsUrl,
+      };
+
+      if (posterMode === 'upload' && posterFile) {
+        // Backend expects: FileInterceptor('posterFile') + @Body()
         const fd = new FormData();
-        fd.append('photo', photoFile);
+        fd.append('posterFile', posterFile);
         // Send body as string fields (Nest multer parses multipart fields as strings)
-        fd.append('gig', JSON.stringify(values));
+        fd.append('gig', JSON.stringify(gig));
         fd.append('telegramInitDataString', telegramInitDataString);
         await apiRequest<void, FormData>('v1/receiver/gig', 'POST', fd);
-      } else if (photoMode === 'url') {
-        const trimmed = photoUrl.trim();
+      } else if (posterMode === 'url') {
+        const trimmed = posterUrl.trim();
         try {
           // Validate URL format
-           
+
           new URL(trimmed);
         } catch {
           toast({
-            title: 'Invalid photo URL',
+            title: 'Invalid poster URL',
             description: 'Please paste a valid image URL.',
             variant: 'destructive',
           });
@@ -82,12 +134,12 @@ export default function GigForm() {
         }
 
         const data = {
-          gig: { ...values, photo: trimmed },
+          gig: { ...gig, posterUrl: trimmed },
           telegramInitDataString,
         };
         await apiRequest('v1/receiver/gig', 'POST', data);
       } else {
-        const data = { gig: values, telegramInitDataString };
+        const data = { gig, telegramInitDataString };
         await apiRequest('v1/receiver/gig', 'POST', data);
       }
 
@@ -111,6 +163,40 @@ export default function GigForm() {
     }
   }
 
+  async function onLookup() {
+    if (isLookingUp) return;
+    setIsLookingUp(true);
+    try {
+      const name = form.getValues('title')?.trim();
+      const city = form.getValues('city')?.trim();
+      const country = form.getValues('country')?.trim();
+      const location = [city, countryToLabel(country)].filter(Boolean).join(', ');
+      const res = await apiRequest<GigLookupResponse>('v1/gig/lookup', 'POST', { name, location });
+      const data: GigLookupResponse = res?.gig ?? res ?? {};
+
+      if (data.title) form.setValue('title', data.title, { shouldDirty: true });
+      const ymd = dateToYMD(data.date);
+      if (ymd) form.setValue('date', ymd, { shouldDirty: true });
+
+      if (data.city) form.setValue('city', data.city, { shouldDirty: true });
+      if (data.country) form.setValue('country', data.country.toUpperCase(), { shouldDirty: true });
+
+      if (data.venue) form.setValue('venue', data.venue, { shouldDirty: true });
+      if (data.ticketsUrl) form.setValue('ticketsUrl', data.ticketsUrl, { shouldDirty: true });
+
+      toast({ title: 'Filled from AI', description: 'Fields were updated from lookup results.' });
+    } catch (e) {
+      toast({
+        title: 'Error',
+        description: 'Failed to start AI lookup.',
+        variant: 'destructive',
+      });
+      console.error(e);
+    } finally {
+      setIsLookingUp(false);
+    }
+  }
+
   return (
     <>
       <Script
@@ -131,42 +217,97 @@ export default function GigForm() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
                 name="title"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel>Title:</FormLabel>
                     <FormControl>
-                      <Input placeholder="Gig title" {...field} value={field.value ?? ''} />
+                      <Input
+                        placeholder="e.g. Arctic Monkeys"
+                        {...field}
+                        value={field.value ?? ''}
+                      />
                     </FormControl>
-                    <FormDescription>Enter the title of a gig.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="country"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Country:</FormLabel>
+                      <FormControl>
+                        <select
+                          {...field}
+                          value={field.value ?? 'ES'}
+                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                        >
+                          {COUNTRIES.map((c) => (
+                            <option key={c.iso} value={c.iso}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City:</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Barcelona" {...field} value={field.value ?? ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <Separator className="flex-1" />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={isLookingUp || isSubmitting}
+                  onClick={onLookup}
+                >
+                  {isLookingUp ? 'Looking up…' : 'Find info with AI'}
+                </Button>
+                <Separator className="flex-1" />
+              </div>
+
               <FormField
                 control={form.control}
                 name="date"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel>Date:</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} value={field.value ?? ''} />
                     </FormControl>
-                    <FormDescription>Select the date of a gig.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <FormField
                 control={form.control}
-                name="location"
+                name="venue"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel>Venue:</FormLabel>
                     <FormControl>
-                      <Input placeholder="Location" {...field} value={field.value ?? ''} />
+                      <Input placeholder="e.g. Razzmatazz" {...field} value={field.value ?? ''} />
                     </FormControl>
-                    <FormDescription>Enter location for a gig.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -176,57 +317,61 @@ export default function GigForm() {
                 name="ticketsUrl"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel>Tickets URL:</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ticket URL" {...field} value={field.value ?? ''} />
+                      <Input
+                        placeholder="e.g. https://www.ticketmaster.es/event/..."
+                        {...field}
+                        value={field.value ?? ''}
+                      />
                     </FormControl>
-                    <FormDescription>Enter the URL where tickets can be purchased.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <FormItem>
                 <div className="space-y-2">
-                  <FormDescription>Photo (optional)</FormDescription>
+                  <div className="text-sm font-medium leading-none">Poster:</div>
                   <ToggleGroup
                     type="single"
-                    value={photoMode}
+                    value={posterMode}
                     onValueChange={(v) => {
-                      const next = (v as 'upload' | 'url') || photoMode;
-                      setPhotoMode(next);
+                      const next = (v as 'upload' | 'url') || posterMode;
+                      setPosterMode(next);
                       if (next === 'upload') {
-                        setPhotoUrl('');
+                        setPosterUrl('');
                       } else {
-                        setPhotoFile(null);
+                        setPosterFile(null);
                       }
                     }}
                     className="justify-start"
                   >
-                    <ToggleGroupItem type="button" value="upload" aria-label="Upload photo">
+                    <ToggleGroupItem type="button" value="upload" aria-label="Upload poster">
                       Upload
                     </ToggleGroupItem>
-                    <ToggleGroupItem type="button" value="url" aria-label="Use photo URL">
+                    <ToggleGroupItem type="button" value="url" aria-label="Use poster URL">
                       URL
                     </ToggleGroupItem>
                   </ToggleGroup>
                 </div>
                 <FormControl>
-                  {photoMode === 'upload' ? (
+                  {posterMode === 'upload' ? (
                     <Input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
+                      onChange={(e) => setPosterFile(e.target.files?.[0] ?? null)}
                     />
                   ) : (
                     <Input
                       type="url"
-                      placeholder="https://example.com/photo.jpg"
-                      value={photoUrl ?? ''}
-                      onChange={(e) => setPhotoUrl(e.target.value)}
+                      placeholder="e.g. https://example.com/poster.jpg"
+                      value={posterUrl ?? ''}
+                      onChange={(e) => setPosterUrl(e.target.value)}
                     />
                   )}
                 </FormControl>
                 <FormDescription>
-                  {photoMode === 'upload'
+                  {posterMode === 'upload'
                     ? 'Upload an image file (max 10MB).'
                     : 'Paste a direct image URL.'}
                 </FormDescription>

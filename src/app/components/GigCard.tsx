@@ -33,6 +33,7 @@ export function Card({ gig }: CardProps) {
             />
           ) : null}
 
+          {/* TODO: Consider using `<Image />` from `next/image`  */}
           <img
             className={`h-full w-full object-cover transition-opacity duration-200 ${
               imgLoaded ? 'opacity-100' : 'opacity-0'
