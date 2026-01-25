@@ -115,6 +115,8 @@ export default function Home() {
     const qs = new URLSearchParams();
     qs.set('page', String(nextPage));
     qs.set('size', String(PAGE_SIZE));
+    qs.set('country', 'ES');
+    qs.set('city', 'Barcelona');
 
     try {
       if (mode === 'replace') {
