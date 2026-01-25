@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { FaUsers } from 'react-icons/fa';
 import type { Event } from '@/types';
 import { LocationIcon } from '@/components/icons/location-icon';
 
@@ -14,11 +13,11 @@ export function Card({ gig }: CardProps) {
   useEffect(() => {
     // Reset when card changes (e.g. pagination / new src)
     setImgLoaded(false);
-  }, [gig.cover]);
+  }, [gig.poster]);
 
   return (
     <div className="flex w-full flex-col bg-white rounded-lg dark:bg-gray-800 dark:border-gray-700">
-      {gig.cover ? (
+      {gig.poster ? (
         <div
           className="relative w-full rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700"
           style={{ aspectRatio: '5 / 3' }}
@@ -38,7 +37,7 @@ export function Card({ gig }: CardProps) {
             className={`h-full w-full object-cover transition-opacity duration-200 ${
               imgLoaded ? 'opacity-100' : 'opacity-0'
             }`}
-            src={gig.cover}
+            src={gig.poster}
             alt={gig.title}
             loading="lazy"
             onLoad={() => setImgLoaded(true)}
@@ -67,16 +66,16 @@ export function Card({ gig }: CardProps) {
             <span className="mb-2 tracking-tight dark:text-white font-bold">{gig.title}</span>
           </a>
           <div className="flex-1"></div>
-          {Number.isFinite(gig.people) && gig.people > 0 ? (
+          {/*          {Number.isFinite(gig.people) && gig.people > 0 ? (
             <p className="text-sm flex flex-row items-center gap-1">
               <FaUsers />
               {gig.people}
             </p>
-          ) : null}
+          ) : null}*/}
         </div>
         <div className="flex flex-row gap-2 items-center text-gray-500">
           <LocationIcon className="h-4 w-4" aria-hidden />
-          <span>{gig.venueAddress}</span>
+          <span>{gig.venue}</span>
         </div>
       </div>
     </div>

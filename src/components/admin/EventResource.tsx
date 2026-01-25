@@ -3,8 +3,6 @@ import {
   Datagrid,
   TextField,
   DateField,
-  NumberField,
-  BooleanField,
   EditButton,
   ShowButton,
   DeleteButton,
@@ -48,10 +46,7 @@ export const EventList = () => (
       <TextField source="id" />
       <TextField source="title" />
       <DateField source="date" />
-      <TextField source="venueAddress" />
-      <NumberField source="people" />
-      <BooleanField source="published" />
-      <TextField source="ticketmasterId" />
+      <TextField source="venue" />
       <EditButton />
       <ShowButton />
       <DeleteButton />
@@ -64,8 +59,8 @@ export const EventCreate = () => (
     <SimpleForm>
       <TextInput source="title" validate={[required()]} />
       <DateInput source="date" validate={[required()]} />
-      <TextInput source="cover" validate={[required()]} />
-      <TextInput source="venueAddress" validate={[required()]} />
+      <TextInput source="poster" validate={[required()]} />
+      <TextInput source="venue" validate={[required()]} />
       <NumberInput source="people" validate={[required()]} />
       <BooleanInput source="published" defaultValue={false} />
       <TextInput source="ticketmasterId" />
@@ -78,8 +73,8 @@ export const EventEdit = () => (
     <SimpleForm>
       <TextInput source="title" validate={[required()]} />
       <DateInput source="date" validate={[required()]} />
-      <TextInput source="cover" validate={[required()]} />
-      <TextInput source="venueAddress" validate={[required()]} />
+      <TextInput source="poster" validate={[required()]} />
+      <TextInput source="venue" validate={[required()]} />
       <NumberInput source="people" validate={[required()]} />
       <BooleanInput source="published" />
       <TextInput source="ticketmasterId" />
@@ -93,11 +88,8 @@ export const EventShow = () => (
       <TextField source="id" />
       <TextField source="title" />
       <DateField source="date" />
-      <TextField source="cover" />
-      <TextField source="venueAddress" />
-      <NumberField source="people" />
-      <BooleanField source="published" />
-      <TextField source="ticketmasterId" />
+      <TextField source="poster" />
+      <TextField source="venue" />
     </SimpleShowLayout>
   </Show>
 );

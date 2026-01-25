@@ -11,25 +11,24 @@ declare global {
 export type Event = {
   id: string;
   date: string;
-  cover: string;
+  poster?: string;
   title: string;
-  people: number;
-  venueAddress: string;
-  published?: boolean;
-  ticketmasterId?: string;
+  venue: string;
   ticketsUrl?: string;
 };
 
 export interface V1GigGetResponseBody {
-  gigs: GigDto[];
+  gigs: V1GigGetResponseBodyGig[];
 }
 
-export interface GigDto {
+export interface V1GigGetResponseBodyGig {
   title: string;
-  date: string | number;
-  location: string;
+  date: string;
+  city: string;
+  country: string;
+  venue: string;
   ticketsUrl: string;
-  photo?: { tgFileId?: string; url?: string };
+  posterUrl?: string;
 }
 
 export {};
