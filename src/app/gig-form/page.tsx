@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -83,6 +83,7 @@ export default function GigForm() {
   const [posterMode, setPosterMode] = useState<'upload' | 'url'>('upload');
   const [posterFile, setPosterFile] = useState<File | null>(null);
   const [posterUrl, setPosterUrl] = useState<string>('');
+  const posterFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -95,6 +96,14 @@ export default function GigForm() {
       ticketsUrl: '',
     },
   });
+
+  function clearPosterFileInput() {
+    setPosterFile(null);
+    if (posterFileInputRef.current) {
+      // Allows re-selecting the same file after submit/error
+      posterFileInputRef.current.value = '';
+    }
+  }
 
   async function onSubmit(values: FormValues) {
     setIsSubmitting(true);
@@ -144,17 +153,33 @@ export default function GigForm() {
       }
 
       toast({
-        title: 'Gig submitted',
-        description: (
-          <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-            <code className="text-white">{JSON.stringify(values, null, 2)}</code>
-          </pre>
-        ),
+        title: 'Sent!',
+        description: 'Thanks — we’ll review it and (hopefully) announce it soon.',
       });
+
+      // Reset form for the next submission (keep location defaults)
+      const currentCity = form.getValues('city') ?? 'Barcelona';
+      const currentCountry = form.getValues('country') ?? 'ES';
+      form.reset({
+        title: '',
+        date: '',
+        city: currentCity,
+        country: currentCountry,
+        venue: '',
+        ticketsUrl: '',
+      });
+      setPosterUrl('');
+      clearPosterFileInput();
     } catch (e) {
+      const message =
+        e instanceof Error
+          ? e.message
+          : typeof e === 'string'
+            ? e
+            : 'There was an error submitting the form.';
       toast({
-        title: 'Error',
-        description: 'There was an error submitting the form.',
+        title: 'Couldn’t submit',
+        description: message,
         variant: 'destructive',
       });
       console.error(e);
@@ -341,7 +366,7 @@ export default function GigForm() {
                       if (next === 'upload') {
                         setPosterUrl('');
                       } else {
-                        setPosterFile(null);
+                        clearPosterFileInput();
                       }
                     }}
                     className="justify-start"
@@ -356,11 +381,22 @@ export default function GigForm() {
                 </div>
                 <FormControl>
                   {posterMode === 'upload' ? (
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setPosterFile(e.target.files?.[0] ?? null)}
-                    />
+                    <div className="flex items-center gap-2">
+                      <Input
+                        ref={posterFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setPosterFile(e.target.files?.[0] ?? null)}
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={clearPosterFileInput}
+                        disabled={!posterFile}
+                      >
+                        Clear
+                      </Button>
+                    </div>
                   ) : (
                     <Input
                       type="url"
