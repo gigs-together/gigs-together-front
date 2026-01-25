@@ -1,5 +1,5 @@
 import type { MouseEvent } from 'react';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { cn, toLocalYMD } from '@/lib/utils';
 import { FaRegCalendar } from 'react-icons/fa';
 import { Calendar } from '@/components/ui/calendar';
@@ -25,6 +25,15 @@ const formatDisplayDate = (dateString?: string) => {
 
 const TopForm = ({ visibleEventDate, onDayClick, availableDates }: TopFormProps) => {
   const availableSet = useMemo(() => new Set(availableDates ?? []), [availableDates]);
+  const [open, setOpen] = useState(false);
+  const [month, setMonth] = useState<Date | undefined>(undefined);
+
+  const monthFromVisibleDate = useMemo(() => {
+    if (!visibleEventDate) return undefined;
+    const [y, m] = visibleEventDate.split('-').map(Number);
+    if (!y || !m) return undefined;
+    return new Date(y, m - 1, 1);
+  }, [visibleEventDate]);
 
   const handleDayClick = (day: Date, activeModifiers?: ActiveModifiers, e?: MouseEvent) => {
     if (activeModifiers?.disabled) return; // ignore clicks on disabled days
@@ -35,7 +44,13 @@ const TopForm = ({ visibleEventDate, onDayClick, availableDates }: TopFormProps)
 
   return (
     <form className={cn('flex w-fit items-center space-x-4 rounded-md sticky top-0')}>
-      <Popover>
+      <Popover
+        open={open}
+        onOpenChange={(nextOpen) => {
+          setOpen(nextOpen);
+          if (nextOpen) setMonth(monthFromVisibleDate ?? new Date());
+        }}
+      >
         <PopoverTrigger asChild>
           <button className="flex items-center gap-2 focus:outline-none">
             <span className="inline-flex items-center gap-2 text-base font-normal text-gray-800 px-2 w-[20ch]">
@@ -45,7 +60,13 @@ const TopForm = ({ visibleEventDate, onDayClick, availableDates }: TopFormProps)
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
-          <Calendar mode="single" disabled={disabledMatcher} onDayClick={handleDayClick} />
+          <Calendar
+            mode="single"
+            month={month}
+            onMonthChange={setMonth}
+            disabled={disabledMatcher}
+            onDayClick={handleDayClick}
+          />
         </PopoverContent>
       </Popover>
     </form>
