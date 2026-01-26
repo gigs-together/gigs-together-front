@@ -6,7 +6,7 @@ import type { DateLibOptions } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>
 
@@ -23,6 +23,7 @@ function Calendar({
 
   const MonthCaption = ({
     calendarMonth,
+    displayIndex,
     className: captionClassName,
     ...captionProps
   }: {
@@ -121,24 +122,6 @@ function Calendar({
       }}
       components={{
         MonthCaption,
-        // react-day-picker v9 uses a single Chevron component with `orientation`
-        Chevron: ({ orientation, className, ...chevronProps }) => {
-          const iconClassName = cn("h-4 w-4", className)
-          const size =
-            typeof chevronProps.size === "number" ? chevronProps.size : undefined
-
-          switch (orientation) {
-            case "right":
-              return <ChevronRight className={iconClassName} size={size} />
-            case "up":
-              return <ChevronUp className={iconClassName} size={size} />
-            case "down":
-              return <ChevronDown className={iconClassName} size={size} />
-            case "left":
-            default:
-              return <ChevronLeft className={iconClassName} size={size} />
-          }
-        },
       }}
       {...props}
     />
