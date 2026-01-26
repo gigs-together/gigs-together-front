@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { Event } from '@/types';
 import { LocationIcon } from '@/components/icons/location-icon';
+import { Ticket } from 'lucide-react';
 
 type CardProps = {
   gig: Event;
@@ -53,18 +54,13 @@ export function Card({ gig }: CardProps) {
       )}
       <div className="p-2">
         <div className="flex flex-row gap-4 items-center">
-          <a
-            href={href}
-            target={href ? '_blank' : undefined}
-            rel={href ? 'noopener noreferrer' : undefined}
-            className={
-              href
-                ? 'transition-colors hover:text-gray-500 dark:hover:text-violet-400 cursor-pointer'
-                : 'pointer-events-none'
-            }
-          >
-            <span className="mb-2 tracking-tight dark:text-white font-bold">{gig.title}</span>
-          </a>
+          <div className="flex flex-col">
+            <span className="mb-1 tracking-tight dark:text-white font-bold">{gig.title}</span>
+            <div className="flex flex-row gap-2 items-center text-gray-500" title="Location">
+              <LocationIcon className="h-4 w-4" aria-hidden />
+              <span>{gig.venue}</span>
+            </div>
+          </div>
           <div className="flex-1"></div>
           {/*          {Number.isFinite(gig.people) && gig.people > 0 ? (
             <p className="text-sm flex flex-row items-center gap-1">
@@ -73,10 +69,18 @@ export function Card({ gig }: CardProps) {
             </p>
           ) : null}*/}
         </div>
-        <div className="flex flex-row gap-2 items-center text-gray-500">
-          <LocationIcon className="h-4 w-4" aria-hidden />
-          <span>{gig.venue}</span>
-        </div>
+        {href ? (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-row gap-2 items-center text-gray-500 transition-colors hover:text-gray-700 dark:hover:text-violet-400"
+            title="Tickets"
+          >
+            <Ticket className="h-4 w-4" aria-hidden />
+            <span>{href}</span>
+          </a>
+        ) : null}
       </div>
     </div>
   );
