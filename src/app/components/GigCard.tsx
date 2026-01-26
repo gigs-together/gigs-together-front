@@ -78,7 +78,7 @@ export function Card({ gig }: CardProps) {
             title="Tickets"
           >
             <Ticket className="h-4 w-4" aria-hidden />
-            <span>{href}</span>
+            <span className="min-w-0 flex-1 truncate">{href}</span>
           </a>
         ) : null}
       </div>
