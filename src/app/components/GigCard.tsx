@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import type { Event } from '@/types';
 import { LocationIcon } from '@/components/icons/location-icon';
 import { Ticket } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 type CardProps = {
   gig: Event;
 };
 
 export function Card({ gig }: CardProps) {
+  const { toast } = useToast();
   const href = gig.ticketsUrl || undefined;
   const [imgLoaded, setImgLoaded] = useState(false);
 
@@ -15,6 +17,15 @@ export function Card({ gig }: CardProps) {
     // Reset when card changes (e.g. pagination / new src)
     setImgLoaded(false);
   }, [gig.poster]);
+
+  const copyLocation = async () => {
+    try {
+      await navigator.clipboard.writeText(gig.venue ?? '');
+      toast({ title: 'Copied', description: 'Venue copied to clipboard.' });
+    } catch {
+      toast({ title: 'Copy failed', description: 'Could not copy venue.' });
+    }
+  };
 
   return (
     <div className="flex w-full flex-col bg-white rounded-lg dark:bg-gray-800 dark:border-gray-700">
@@ -53,7 +64,15 @@ export function Card({ gig }: CardProps) {
               className="flex w-full min-w-0 flex-row gap-2 items-center text-gray-500"
               title="Venue"
             >
-              <LocationIcon className="h-4 w-4 shrink-0" aria-hidden />
+              <button
+                type="button"
+                onClick={copyLocation}
+                className="shrink-0 transition-colors hover:text-gray-700 dark:hover:text-violet-400"
+                aria-label="Copy venue"
+                title="Copy venue"
+              >
+                <LocationIcon className="h-4 w-4" aria-hidden />
+              </button>
               <span className="min-w-0 flex-1 truncate">{gig.venue}</span>
             </div>
           </div>
@@ -70,7 +89,7 @@ export function Card({ gig }: CardProps) {
             target="_blank"
             rel="noopener noreferrer"
             className="flex w-full min-w-0 flex-row gap-2 items-center text-gray-500 transition-colors hover:text-gray-700 dark:hover:text-violet-400"
-            title="Tickets"
+            title="Open tickets"
           >
             <Ticket className="h-4 w-4 shrink-0" aria-hidden />
             <span className="min-w-0 flex-1 truncate">{href}</span>
