@@ -4,11 +4,11 @@ import { cn, toLocalYMD } from '@/lib/utils';
 import { FaRegCalendar } from 'react-icons/fa';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import type { ActiveModifiers } from 'react-day-picker';
+import type { Modifiers } from 'react-day-picker';
 
 interface TopFormProps {
   visibleEventDate?: string;
-  onDayClick?: (day: Date, activeModifiers?: ActiveModifiers, e?: MouseEvent) => void;
+  onDayClick?: (day: Date, modifiers?: Modifiers, e?: MouseEvent) => void;
   availableDates?: string[]; // list of dates that have events (YYYY-MM-DD)
 }
 
@@ -35,9 +35,9 @@ const TopForm = ({ visibleEventDate, onDayClick, availableDates }: TopFormProps)
     return new Date(y, m - 1, 1);
   }, [visibleEventDate]);
 
-  const handleDayClick = (day: Date, activeModifiers?: ActiveModifiers, e?: MouseEvent) => {
-    if (activeModifiers?.disabled) return; // ignore clicks on disabled days
-    onDayClick?.(day, activeModifiers, e);
+  const handleDayClick = (day: Date, modifiers?: Modifiers, e?: MouseEvent) => {
+    if (modifiers?.disabled) return; // ignore clicks on disabled days
+    onDayClick?.(day, modifiers, e);
   };
 
   const disabledMatcher = (date: Date) => !availableSet.has(toLocalYMD(date));
