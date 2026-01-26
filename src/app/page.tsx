@@ -80,8 +80,8 @@ export default function Home() {
   const [visibleEventDate, setVisibleEventDate] = useState<string | undefined>();
 
   const eventRefs = useRef<Map<string, HTMLElement>>(new Map());
-  const scrollContainerRef = useRef<HTMLElement>();
-  const headerOffsetHeightRef = useRef<number>();
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
+  const headerOffsetHeightRef = useRef<number>(0);
   const anchorsRef = useRef<HTMLElement[]>([]);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const inFlightRef = useRef(false);
