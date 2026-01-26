@@ -17,7 +17,7 @@ export function MonthSection({ children, title, date }: MonthSectionProps) {
           <h3 className="text-2xl font-bold text-gray-600 top-0 uppercase">{title}</h3>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
         {children}
       </div>
     </div>

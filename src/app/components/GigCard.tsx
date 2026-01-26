@@ -19,10 +19,7 @@ export function Card({ gig }: CardProps) {
   return (
     <div className="flex w-full flex-col bg-white rounded-lg dark:bg-gray-800 dark:border-gray-700">
       {gig.poster ? (
-        <div
-          className="relative w-full rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700"
-          style={{ aspectRatio: '5 / 3' }}
-        >
+        <div className="relative w-full aspect-[4/5] rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
           {/* Skeleton */}
           {!imgLoaded ? (
             <div
@@ -46,22 +43,20 @@ export function Card({ gig }: CardProps) {
           />
         </div>
       ) : (
-        <div
-          className="w-full rounded-lg bg-gray-100 dark:bg-gray-700"
-          style={{ aspectRatio: '5 / 3' }}
-          aria-hidden
-        />
+        <div className="w-full aspect-[4/5] rounded-lg bg-gray-100 dark:bg-gray-700" aria-hidden />
       )}
       <div className="p-2">
-        <div className="flex flex-row gap-4 items-center">
-          <div className="flex flex-col">
+        <div className="flex min-w-0 flex-row gap-4 items-center">
+          <div className="flex min-w-0 flex-1 flex-col">
             <span className="mb-1 tracking-tight dark:text-white font-bold">{gig.title}</span>
-            <div className="flex flex-row gap-2 items-center text-gray-500" title="Location">
-              <LocationIcon className="h-4 w-4" aria-hidden />
-              <span>{gig.venue}</span>
+            <div
+              className="flex w-full min-w-0 flex-row gap-2 items-center text-gray-500"
+              title="Venue"
+            >
+              <LocationIcon className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="min-w-0 flex-1 truncate">{gig.venue}</span>
             </div>
           </div>
-          <div className="flex-1"></div>
           {/*          {Number.isFinite(gig.people) && gig.people > 0 ? (
             <p className="text-sm flex flex-row items-center gap-1">
               <FaUsers />
@@ -74,10 +69,10 @@ export function Card({ gig }: CardProps) {
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex flex-row gap-2 items-center text-gray-500 transition-colors hover:text-gray-700 dark:hover:text-violet-400"
+            className="flex w-full min-w-0 flex-row gap-2 items-center text-gray-500 transition-colors hover:text-gray-700 dark:hover:text-violet-400"
             title="Tickets"
           >
-            <Ticket className="h-4 w-4" aria-hidden />
+            <Ticket className="h-4 w-4 shrink-0" aria-hidden />
             <span className="min-w-0 flex-1 truncate">{href}</span>
           </a>
         ) : null}
