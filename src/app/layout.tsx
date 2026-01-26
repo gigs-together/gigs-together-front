@@ -15,7 +15,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'Gigs Together',
+  title: 'Gigs Together!',
   description: "Let's go",
 };
 
