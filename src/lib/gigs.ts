@@ -1,4 +1,4 @@
-import type { Event, V1GigGetResponseBodyGig } from '@/types';
+import type { Event, V1GigGetResponseBodyGig } from '@/lib/types';
 import { toLocalYMD } from '@/lib/utils';
 
 const toMs = (n: number) => (n < 1_000_000_000_000 ? n * 1000 : n); // seconds -> ms (heuristic)

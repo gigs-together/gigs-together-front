@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import type { Event } from '@/types';
+import type { Event } from '@/lib/types';
 import { LocationIcon } from '@/components/icons/location-icon';
 import { Ticket } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';

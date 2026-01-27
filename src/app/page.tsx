@@ -7,7 +7,7 @@ import { toLocalYMD } from '@/lib/utils';
 import './style.css';
 import { MonthSection } from './components/MonthSection';
 import { Card } from './components/GigCard';
-import type { Event, V1GigGetResponseBody } from '@/types';
+import type { Event, V1GigGetResponseBody } from '@/lib/types';
 import { FaRegCalendar } from 'react-icons/fa';
 import { apiRequest } from '@/lib/api';
 import { gigDtoToEvent } from '@/lib/gigs';
