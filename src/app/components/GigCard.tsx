@@ -30,7 +30,7 @@ export function Card({ gig }: CardProps) {
   return (
     <div className="flex w-full flex-col bg-white rounded-lg dark:bg-gray-800 dark:border-gray-700">
       {gig.poster ? (
-        <div className="relative w-full aspect-[4/5] rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+        <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
           {/* Skeleton */}
           {!imgLoaded ? (
             <div
@@ -54,7 +54,7 @@ export function Card({ gig }: CardProps) {
           />
         </div>
       ) : (
-        <div className="w-full aspect-[4/5] rounded-lg bg-gray-100 dark:bg-gray-700" aria-hidden />
+        <div className="w-full aspect-[3/4] rounded-lg bg-gray-100 dark:bg-gray-700" aria-hidden />
       )}
       <div className="p-2">
         <div className="flex min-w-0 flex-row gap-4 items-center">
