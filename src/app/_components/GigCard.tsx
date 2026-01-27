@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import type { Event } from '@/lib/types';
-import { LocationIcon } from '@/components/icons/location-icon';
+import { LocationIcon } from '@/components/ui/location-icon';
 import { Ticket } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-type CardProps = {
+type GigCardProps = {
   gig: Event;
 };
 
-export function Card({ gig }: CardProps) {
+export function GigCard({ gig }: GigCardProps) {
   const { toast } = useToast();
   const href = gig.ticketsUrl || undefined;
   const [imgLoaded, setImgLoaded] = useState(false);

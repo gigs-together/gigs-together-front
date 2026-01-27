@@ -1,10 +1,10 @@
 'use client';
 
-import TopForm from '@/app/components/TopForm';
+import TopForm from '@/app/_components/TopForm';
 import React from 'react';
 import { FaBars, FaGithub, FaTelegramPlane } from 'react-icons/fa';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { LocationIcon } from '@/components/icons/location-icon';
+import { LocationIcon } from '@/components/ui/location-icon';
 
 interface HeaderProps {
   earliestEventDate?: string;

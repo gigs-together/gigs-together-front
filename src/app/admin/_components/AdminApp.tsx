@@ -1,11 +1,16 @@
 'use client';
 
 import { Admin, Resource } from 'react-admin';
-import { dataProvider } from '@/lib/dataProvider';
-import { authProvider } from '@/lib/authProvider';
-import { UserList, UserEdit, UserCreate, UserShow } from '@/components/admin/UserResource';
-import { EventList, EventEdit, EventCreate, EventShow } from '@/components/admin/EventResource';
-import Dashboard from '@/components/admin/Dashboard';
+import { dataProvider } from '@/lib/data-provider';
+import { authProvider } from '@/lib/auth-provider';
+import { UserList, UserEdit, UserCreate, UserShow } from '@/app/admin/_components/UserResource';
+import {
+  EventList,
+  EventEdit,
+  EventCreate,
+  EventShow,
+} from '@/app/admin/_components/EventResource';
+import Dashboard from '@/app/admin/_components/Dashboard';
 
 const AdminApp = () => (
   <Admin

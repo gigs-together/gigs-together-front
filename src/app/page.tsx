@@ -1,12 +1,12 @@
 'use client';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import styles from './page.module.css';
-import Header from '@/components/layout/header';
+import Header from '@/app/_components/Header';
 import { toLocalYMD } from '@/lib/utils';
 
 import './style.css';
-import { MonthSection } from './components/MonthSection';
-import { Card } from './components/GigCard';
+import { MonthSection } from './_components/MonthSection';
+import { GigCard } from './_components/GigCard';
 import type { Event, V1GigGetResponseBody } from '@/lib/types';
 import { FaRegCalendar } from 'react-icons/fa';
 import { apiRequest } from '@/lib/api';
@@ -368,7 +368,7 @@ export default function Home() {
                           data-event-id={event.id}
                           ref={(el) => registerEventRef(event.id, el)}
                         >
-                          <Card gig={event} />
+                          <GigCard gig={event} />
                         </div>
                       ))}
                     </div>
