@@ -298,7 +298,12 @@ export default function Home() {
 
     if (!target) return;
 
-    target.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+    // `scrollIntoView` can overshoot in our layout; compute the scroll position manually.
+    const headerPx = headerOffsetHeightRef.current ?? 0;
+    // Tune this if needed: positive value means "stop a bit earlier" (less scroll down).
+    const EXTRA_OFFSET_PX = 30;
+    const top = window.scrollY + target.getBoundingClientRect().top - headerPx - EXTRA_OFFSET_PX;
+    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
   };
 
   return (
