@@ -1,11 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import type { Event } from '@/lib/types';
 import { LocationIcon } from '@/components/ui/location-icon';
-import { Ticket } from 'lucide-react';
+import { Calendar, Ticket } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 type GigCardProps = {
   gig: Event;
+};
+
+const DEFAULT_LOCALE = 'en-US';
+
+const formatGigDate = (dateString?: string) => {
+  if (!dateString) return '';
+  // Parse as local date to avoid timezone shifts (don't use new Date("YYYY-MM-DD"))
+  const [y, m, day] = dateString.split('-').map(Number);
+  const d = new Date(y, (m ?? 1) - 1, day ?? 1);
+  return d.toLocaleDateString(DEFAULT_LOCALE, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 };
 
 export function GigCard({ gig }: GigCardProps) {
@@ -59,7 +74,14 @@ export function GigCard({ gig }: GigCardProps) {
       <div className="p-2">
         <div className="flex min-w-0 flex-row gap-4 items-center">
           <div className="flex min-w-0 flex-1 flex-col">
-            <span className="mb-1 tracking-tight dark:text-white font-bold">{gig.title}</span>
+            <span className="tracking-tight dark:text-white font-bold">{gig.title}</span>
+            <div
+              className="flex w-full min-w-0 flex-row gap-2 items-center text-gray-500 mb-1"
+              title="Date"
+            >
+              <Calendar className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="min-w-0 flex-1 truncate">{formatGigDate(gig.date)}</span>
+            </div>
             <div
               className="flex w-full min-w-0 flex-row gap-2 items-center text-gray-500"
               title="Venue"
