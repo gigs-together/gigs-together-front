@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import type { Event } from '@/lib/types';
 import { LocationIcon } from '@/components/ui/location-icon';
 import { Calendar, Ticket } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 
 type GigCardProps = {
   gig: Event;
@@ -24,23 +23,16 @@ const formatGigDate = (dateString?: string) => {
 };
 
 export function GigCard({ gig }: GigCardProps) {
-  const { toast } = useToast();
   const href = gig.ticketsUrl || undefined;
+  const mapsHref = gig.venue
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(gig.venue)}`
+    : undefined;
   const [imgLoaded, setImgLoaded] = useState(false);
 
   useEffect(() => {
     // Reset when card changes (e.g. pagination / new src)
     setImgLoaded(false);
   }, [gig.poster]);
-
-  const copyLocation = async () => {
-    try {
-      await navigator.clipboard.writeText(gig.venue ?? '');
-      toast({ title: 'Copied', description: 'Venue copied to clipboard.' });
-    } catch {
-      toast({ title: 'Copy failed', description: 'Could not copy venue.' });
-    }
-  };
 
   return (
     <div className="flex w-full flex-col bg-white rounded-lg dark:bg-gray-800 dark:border-gray-700">
@@ -86,16 +78,24 @@ export function GigCard({ gig }: GigCardProps) {
               className="flex w-full min-w-0 flex-row gap-2 items-center text-gray-500"
               title="Venue"
             >
-              <button
-                type="button"
-                onClick={copyLocation}
-                className="shrink-0 transition-colors hover:text-gray-700 dark:hover:text-violet-400"
-                aria-label="Copy venue"
-                title="Copy venue"
-              >
-                <LocationIcon className="h-4 w-4" aria-hidden />
-              </button>
-              <span className="min-w-0 flex-1 truncate">{gig.venue}</span>
+              {mapsHref ? (
+                <a
+                  href={mapsHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-w-0 flex-1 items-center gap-2 truncate transition-colors hover:text-gray-700 dark:hover:text-violet-400"
+                  title="Open in Google Maps"
+                  aria-label="Open venue in Google Maps"
+                >
+                  <LocationIcon className="h-4 w-4 shrink-0" aria-hidden />
+                  <span className="min-w-0 flex-1 truncate">{gig.venue}</span>
+                </a>
+              ) : (
+                <>
+                  <LocationIcon className="h-4 w-4 shrink-0" aria-hidden />
+                  <span className="min-w-0 flex-1 truncate">{gig.venue}</span>
+                </>
+              )}
             </div>
           </div>
           {/*          {Number.isFinite(gig.people) && gig.people > 0 ? (
