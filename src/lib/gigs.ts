@@ -39,5 +39,6 @@ export function gigDtoToEvent(gig: V1GigGetResponseBodyGig, idx: number): Event 
     title: gig.title,
     venue: gig.venue,
     ticketsUrl: gig.ticketsUrl,
+    calendarUrl: gig.calendarUrl,
   };
 }

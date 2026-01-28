@@ -23,7 +23,6 @@ const formatGigDate = (dateString?: string) => {
 };
 
 export function GigCard({ gig }: GigCardProps) {
-  const href = gig.ticketsUrl || undefined;
   const mapsHref = gig.venue
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(gig.venue)}`
     : undefined;
@@ -67,13 +66,27 @@ export function GigCard({ gig }: GigCardProps) {
         <div className="flex min-w-0 flex-row gap-4 items-center">
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="tracking-tight dark:text-white font-bold">{gig.title}</span>
-            <div
-              className="flex w-full min-w-0 flex-row gap-2 items-center text-gray-500"
-              title="Date"
-            >
-              <Calendar className="h-4 w-4 shrink-0" aria-hidden />
-              <span className="min-w-0 flex-1 truncate">{formatGigDate(gig.date)}</span>
-            </div>
+            {gig.calendarUrl ? (
+              <a
+                href={gig.calendarUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full min-w-0 flex-row gap-2 items-center text-gray-500 transition-colors hover:text-gray-700 dark:hover:text-violet-400"
+                title="Add to Google Calendar"
+                aria-label="Add to Google Calendar"
+              >
+                <Calendar className="h-4 w-4 shrink-0" aria-hidden />
+                <span className="min-w-0 flex-1 truncate">{formatGigDate(gig.date)}</span>
+              </a>
+            ) : (
+              <div
+                className="flex w-full min-w-0 flex-row gap-2 items-center text-gray-500"
+                title="Date"
+              >
+                <Calendar className="h-4 w-4 shrink-0" aria-hidden />
+                <span className="min-w-0 flex-1 truncate">{formatGigDate(gig.date)}</span>
+              </div>
+            )}
             <div
               className="flex w-full min-w-0 flex-row gap-2 items-center text-gray-500"
               title="Venue"
@@ -105,9 +118,9 @@ export function GigCard({ gig }: GigCardProps) {
             </p>
           ) : null}*/}
         </div>
-        {href ? (
+        {gig.ticketsUrl ? (
           <a
-            href={href}
+            href={gig.ticketsUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="flex w-full min-w-0 flex-row gap-2 items-center text-gray-500 transition-colors hover:text-gray-700 dark:hover:text-violet-400"

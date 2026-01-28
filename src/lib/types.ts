@@ -15,6 +15,7 @@ export type Event = {
   title: string;
   venue: string;
   ticketsUrl?: string;
+  calendarUrl?: string;
 };
 
 export interface V1GigGetResponseBody {
@@ -29,6 +30,7 @@ export interface V1GigGetResponseBodyGig {
   venue: string;
   ticketsUrl: string;
   posterUrl?: string;
+  calendarUrl?: string;
 }
 
 export {};
