@@ -76,7 +76,7 @@ export function GigCard({ gig }: GigCardProps) {
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="tracking-tight dark:text-white font-bold">{gig.title}</span>
             <div
-              className="flex w-full min-w-0 flex-row gap-2 items-center text-gray-500 mb-1"
+              className="flex w-full min-w-0 flex-row gap-2 items-center text-gray-500"
               title="Date"
             >
               <Calendar className="h-4 w-4 shrink-0" aria-hidden />
@@ -114,7 +114,7 @@ export function GigCard({ gig }: GigCardProps) {
             title="Open tickets"
           >
             <Ticket className="h-4 w-4 shrink-0" aria-hidden />
-            <span className="min-w-0 flex-1 truncate">{href}</span>
+            <span className="min-w-0 flex-1 truncate">Tickets</span>
           </a>
         ) : null}
       </div>
