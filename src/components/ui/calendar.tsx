@@ -14,6 +14,7 @@ function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  weekStartsOn = 1,
   ...props
 }: CalendarProps) {
   const navButton = cn(
@@ -82,6 +83,7 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
+      weekStartsOn={weekStartsOn}
       className={cn("p-3", className)}
       hideNavigation
       classNames={{
