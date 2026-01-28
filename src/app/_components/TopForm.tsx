@@ -12,15 +12,13 @@ interface TopFormProps {
   availableDates?: string[]; // list of dates that have events (YYYY-MM-DD)
 }
 
-const formatDisplayDate = (dateString?: string) => {
+const formatDisplayMonth = (dateString?: string) => {
   if (!dateString) return '—';
-  const d = new Date(dateString);
-  return d.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  // Parse manually to avoid timezone shifts with new Date("YYYY-MM-DD")
+  const [y, m] = dateString.split('-').map(Number);
+  if (!y || !m) return '—';
+  const d = new Date(y, m - 1, 1);
+  return `${d.toLocaleString('en-US', { month: 'long' })} ${y}`;
 };
 
 const TopForm = ({ visibleEventDate, onDayClick, availableDates }: TopFormProps) => {
@@ -53,9 +51,9 @@ const TopForm = ({ visibleEventDate, onDayClick, availableDates }: TopFormProps)
       >
         <PopoverTrigger asChild>
           <button className="flex items-center gap-2 focus:outline-none">
-            <span className="inline-flex items-center gap-2 text-base font-normal text-gray-800 px-2 w-[20ch]">
+            <span className="inline-flex items-center justify-center gap-2 text-base font-normal text-gray-800 px-2">
               <FaRegCalendar className="text-gray-600" />
-              {formatDisplayDate(visibleEventDate)}
+              {formatDisplayMonth(visibleEventDate)}
             </span>
           </button>
         </PopoverTrigger>

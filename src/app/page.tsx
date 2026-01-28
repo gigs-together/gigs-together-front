@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { Fragment, useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import styles from './page.module.css';
 import Header from '@/app/_components/Header';
 import { toLocalYMD } from '@/lib/utils';
@@ -8,7 +8,6 @@ import './style.css';
 import { MonthSection } from './_components/MonthSection';
 import { GigCard } from './_components/GigCard';
 import type { Event, V1GigGetResponseBody } from '@/lib/types';
-import { FaRegCalendar } from 'react-icons/fa';
 import { apiRequest } from '@/lib/api';
 import { gigDtoToEvent } from '@/lib/gigs';
 
@@ -19,19 +18,6 @@ const formatMonthTitle = (date: string): string => {
   return (
     new Date(date).toLocaleString(DEFAULT_LOCALE, { month: 'long' }) + ' ' + date.split('-')[0]
   );
-};
-
-const formatFullDate = (dateString?: string) => {
-  if (!dateString) return '';
-  // Parse as local date to avoid timezone shifts (don't use new Date("YYYY-MM-DD"))
-  const [y, m, day] = dateString.split('-').map(Number);
-  const d = new Date(y, (m ?? 1) - 1, day ?? 1);
-  return d.toLocaleDateString(DEFAULT_LOCALE, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
 };
 
 function useHeaderHeight(selector = '[data-app-header]', fallback = 44) {
@@ -213,10 +199,16 @@ export default function Home() {
     const anchors = anchorsRef.current;
     if (!anchors || anchors.length === 0) return;
 
+    // Switch to the next anchor a bit *before* it touches the header.
+    // This makes the month in the header update slightly earlier while scrolling.
+    const EARLY_SWITCH_PX = 40;
+
     const withTop = anchors.map((el) => ({ el, top: el.getBoundingClientRect().top - headerH }));
     const firstBelow = withTop.filter((x) => x.top >= 0).sort((a, b) => a.top - b.top)[0];
     const closestAbove = withTop.filter((x) => x.top < 0).sort((a, b) => b.top - a.top)[0];
-    const targetEl = (closestAbove ?? firstBelow)?.el as HTMLElement | undefined;
+    const targetEl = (
+      firstBelow && firstBelow.top < EARLY_SWITCH_PX ? firstBelow : (closestAbove ?? firstBelow)
+    )?.el as HTMLElement | undefined;
     const dateAttr = targetEl?.dataset.date;
     if (dateAttr) setRawVisibleEventDate((prev) => (prev === dateAttr ? prev : dateAttr));
   }, []);
@@ -329,50 +321,36 @@ export default function Home() {
               <p className="text-gray-500 mt-2">Check back later for upcoming events!</p>
             </div>
           ) : (
-            months.map((day, monthIdx) => {
-              const eventsByDay: Record<string, Event[]> = {};
-              day.events.forEach((ev) => {
-                eventsByDay[ev.date] = eventsByDay[ev.date] || [];
-                eventsByDay[ev.date].push(ev);
-              });
-
-              const orderedDates = Object.keys(eventsByDay).sort();
-
+            months.map((month, monthIdx) => {
+              const orderedMonthEvents = [...month.events].sort(
+                (a, b) => a.date.localeCompare(b.date) || String(a.id).localeCompare(String(b.id)),
+              );
               return (
-                <MonthSection key={day.date} title={formatMonthTitle(day.date)} date={day.date}>
-                  {orderedDates.map((dateStr, i) => (
-                    <div key={dateStr} className="contents">
-                      <div
-                        data-date={dateStr}
-                        className="col-span-full h-0 overflow-hidden scroll-mt-[calc(var(--header-h)_-_10px)]"
-                        aria-hidden
-                      />
+                <MonthSection
+                  key={month.date}
+                  title={formatMonthTitle(month.date)}
+                  date={month.date}
+                  showDivider={monthIdx !== 0}
+                >
+                  {orderedMonthEvents.map((event, idx) => {
+                    const prev = orderedMonthEvents[idx - 1];
+                    const isFirstOfDate = idx === 0 || prev?.date !== event.date;
 
-                      {monthIdx === 0 && i === 0 ? null : (
-                        <div className="col-span-full">
-                          <div
-                            data-date={dateStr}
-                            className="w-full border-b border-gray-200 my-6 relative scroll-mt-[calc(var(--header-h)-_10px)]"
-                          >
-                            <span className="inline-flex items-center gap-2 text-base leading-none font-normal text-gray-800 px-2 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white w-[20ch]">
-                              <FaRegCalendar className="text-gray-600" />
-                              {formatFullDate(dateStr)}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      {eventsByDay[dateStr].map((event) => (
+                    return (
+                      <Fragment key={event.id}>
                         <div
-                          key={event.id}
+                          data-date={isFirstOfDate ? event.date : undefined}
                           data-event-id={event.id}
                           ref={(el) => registerEventRef(event.id, el)}
+                          className={
+                            isFirstOfDate ? 'scroll-mt-[calc(var(--header-h)_-_10px)]' : undefined
+                          }
                         >
                           <GigCard gig={event} />
                         </div>
-                      ))}
-                    </div>
-                  ))}
+                      </Fragment>
+                    );
+                  })}
                 </MonthSection>
               );
             })
