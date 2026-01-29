@@ -10,9 +10,11 @@ interface HeaderProps {
   earliestEventDate?: string;
   onDayClick?: (day: Date) => void;
   availableDates?: string[]; // formatted as YYYY-MM-DD
+  location: string;
 }
 
-export default function Header({ earliestEventDate, onDayClick, availableDates }: HeaderProps) {
+export default function Header(props: HeaderProps) {
+  const { earliestEventDate, onDayClick, availableDates, location } = props;
   const telegramUrl = process.env.NEXT_PUBLIC_TELEGRAM_URL;
   const githubUrl = process.env.NEXT_PUBLIC_GITHUB_URL;
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
@@ -51,7 +53,7 @@ export default function Header({ earliestEventDate, onDayClick, availableDates }
                     title="Location"
                   >
                     <LocationIcon className="h-4 w-4" />
-                    Barcelona
+                    {location}
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto px-3 py-2 text-sm" align="end" side="bottom">
@@ -99,7 +101,7 @@ export default function Header({ earliestEventDate, onDayClick, availableDates }
                           aria-label="Current location"
                         >
                           <LocationIcon className="h-4 w-4" />
-                          Barcelona
+                          {location}
                         </button>
                       </PopoverTrigger>
                       <PopoverContent
