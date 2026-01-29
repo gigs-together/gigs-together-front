@@ -41,7 +41,7 @@ export function gigDtoToEvent(gig: V1GigGetResponseBodyGig, idx: number): Event 
     venue: gig.venue,
     city: gig.city,
     country: {
-      code: gig.country,
+      iso: gig.country,
       name: COUNTRY_BY_ISO_MAP.get(gig.country)!,
     },
     ticketsUrl: gig.ticketsUrl,

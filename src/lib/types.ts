@@ -16,7 +16,7 @@ export type Event = {
   venue: string;
   city: string;
   country: {
-    code: string;
+    iso: string;
     name: string;
   };
   ticketsUrl?: string;
