@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { Event } from '@/lib/types';
 import { LocationIcon } from '@/components/ui/location-icon';
 import { Calendar, Ticket } from 'lucide-react';
@@ -26,11 +26,12 @@ export function GigCard({ gig }: GigCardProps) {
   const mapsHref = gig.venue
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(gig.venue)}`
     : undefined;
+  const imgRef = useRef<HTMLImageElement>(null);
   const [imgLoaded, setImgLoaded] = useState(false);
 
   useEffect(() => {
     // Reset when card changes (e.g. pagination / new src)
-    setImgLoaded(false);
+    setImgLoaded(imgRef.current?.complete ?? false);
   }, [gig.poster]);
 
   return (
@@ -52,9 +53,10 @@ export function GigCard({ gig }: GigCardProps) {
             className={`h-full w-full object-cover transition-opacity duration-200 ${
               imgLoaded ? 'opacity-100' : 'opacity-0'
             }`}
+            ref={imgRef}
             src={gig.poster}
             alt={gig.title}
-            // loading="lazy"
+            loading="lazy"
             onLoad={() => setImgLoaded(true)}
             onError={() => setImgLoaded(true)}
           />
