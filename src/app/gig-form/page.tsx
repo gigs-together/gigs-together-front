@@ -21,7 +21,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import Script from 'next/script';
 import { apiRequest } from '@/lib/api';
 import { Separator } from '@/components/ui/separator';
-import countriesJson from '../../../countries.json';
+import { COUNTRY_BY_ISO_MAP, COUNTRIES } from '@/lib/countries';
 
 const formSchema = z.object({
   title: z.string().min(2, {
@@ -39,13 +39,6 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
-
-type CountryItem = { iso: string; name: string };
-const COUNTRIES: CountryItem[] = (countriesJson as CountryItem[])
-  .filter((c) => c?.iso && c?.name)
-  .map((c) => ({ iso: String(c.iso).toUpperCase(), name: String(c.name) }));
-
-const COUNTRY_BY_ISO = new Map(COUNTRIES.map((c) => [c.iso, c.name]));
 
 type GigLookupResponse = {
   title?: string;
@@ -74,7 +67,7 @@ function dateToYMD(date?: string): string | undefined {
 function countryToLabel(country?: string): string | undefined {
   const c = country?.trim();
   if (!c) return undefined;
-  return COUNTRY_BY_ISO.get(c.toUpperCase()) ?? c;
+  return COUNTRY_BY_ISO_MAP.get(c.toUpperCase()) ?? c;
 }
 
 export default function GigForm() {

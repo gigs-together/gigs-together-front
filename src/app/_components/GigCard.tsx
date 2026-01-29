@@ -23,8 +23,9 @@ const formatGigDate = (dateString?: string) => {
 };
 
 export function GigCard({ gig }: GigCardProps) {
-  const mapsHref = gig.venue
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(gig.venue)}`
+  const location = [gig.venue, gig.city, gig.country.name].filter((str) => !!str).join(' ');
+  const mapsHref = location
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`
     : undefined;
   const imgRef = useRef<HTMLImageElement>(null);
   const [imgLoaded, setImgLoaded] = useState(false);

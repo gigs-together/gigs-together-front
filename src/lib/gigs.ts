@@ -1,5 +1,6 @@
 import type { Event, V1GigGetResponseBodyGig } from '@/lib/types';
 import { toLocalYMD } from '@/lib/utils';
+import { COUNTRY_BY_ISO_MAP } from '@/lib/countries';
 
 const toMs = (n: number) => (n < 1_000_000_000_000 ? n * 1000 : n); // seconds -> ms (heuristic)
 
@@ -38,6 +39,11 @@ export function gigDtoToEvent(gig: V1GigGetResponseBodyGig, idx: number): Event 
     poster: gig.posterUrl,
     title: gig.title,
     venue: gig.venue,
+    city: gig.city,
+    country: {
+      code: gig.country,
+      name: COUNTRY_BY_ISO_MAP.get(gig.country)!,
+    },
     ticketsUrl: gig.ticketsUrl,
     calendarUrl: gig.calendarUrl,
   };

@@ -14,6 +14,11 @@ export type Event = {
   poster?: string;
   title: string;
   venue: string;
+  city: string;
+  country: {
+    code: string;
+    name: string;
+  };
   ticketsUrl?: string;
   calendarUrl?: string;
 };
