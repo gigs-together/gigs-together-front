@@ -54,7 +54,7 @@ export function GigCard({ gig }: GigCardProps) {
             }`}
             src={gig.poster}
             alt={gig.title}
-            loading="lazy"
+            // loading="lazy"
             onLoad={() => setImgLoaded(true)}
             onError={() => setImgLoaded(true)}
           />
