@@ -5,6 +5,7 @@ import React from 'react';
 import { FaBars, FaGithub, FaTelegramPlane } from 'react-icons/fa';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { LocationIcon } from '@/components/ui/location-icon';
+import { normalizeLocationTitle } from '@/lib/utils';
 
 interface HeaderProps {
   earliestEventDate?: string;
@@ -19,6 +20,7 @@ export default function Header(props: HeaderProps) {
   const githubUrl = process.env.NEXT_PUBLIC_GITHUB_URL;
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [locationTipOpen, setLocationTipOpen] = React.useState(false);
+  const locationLabel = normalizeLocationTitle(location);
 
   return (
     <header
@@ -53,7 +55,7 @@ export default function Header(props: HeaderProps) {
                     title="Location"
                   >
                     <LocationIcon className="h-4 w-4" />
-                    {location}
+                    {locationLabel}
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto px-3 py-2 text-sm" align="end" side="bottom">
@@ -101,7 +103,7 @@ export default function Header(props: HeaderProps) {
                           aria-label="Current location"
                         >
                           <LocationIcon className="h-4 w-4" />
-                          {location}
+                          {locationLabel}
                         </button>
                       </PopoverTrigger>
                       <PopoverContent
