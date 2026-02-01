@@ -13,7 +13,8 @@ import { apiRequest } from '@/lib/api';
 import { gigDtoToEvent } from '@/lib/gigs';
 
 type FeedClientProps = {
-  location: string;
+  country: string; // ISO like "es"
+  city: string; // slug like "barcelona"
 };
 
 const DEFAULT_LOCALE = 'en-US';
@@ -56,14 +57,7 @@ function useHeaderHeight(selector = '[data-app-header]', fallback = 44) {
   return h; // value in pixels
 }
 
-function toTitleCaseCity(raw: string): string {
-  const s = decodeURIComponent(raw ?? '').trim();
-  if (!s) return s;
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-export default function FeedClient({ location }: FeedClientProps) {
-  const city = useMemo(() => toTitleCaseCity(location), [location]);
+export default function FeedClient({ country, city }: FeedClientProps) {
   const headerH = useHeaderHeight(); // will pick [data-app-header], fallback 44
 
   const [events, setEvents] = useState<Event[]>([]);
@@ -114,7 +108,7 @@ export default function FeedClient({ location }: FeedClientProps) {
       const qs = new URLSearchParams();
       qs.set('page', String(nextPage));
       qs.set('size', String(PAGE_SIZE));
-      qs.set('country', 'ES');
+      if (country) qs.set('country', country);
       if (city) qs.set('city', city);
 
       try {
@@ -148,10 +142,10 @@ export default function FeedClient({ location }: FeedClientProps) {
         inFlightRef.current = false;
       }
     },
-    [city],
+    [city, country],
   );
 
-  // Initial load (refetch when location changes)
+  // Initial load (refetch when params change)
   useEffect(() => {
     fetchPage(1, 'replace');
   }, [fetchPage]);
@@ -274,7 +268,7 @@ export default function FeedClient({ location }: FeedClientProps) {
   if (loading) {
     return (
       <div className={styles.page}>
-        <Header location={location} />
+        <Header city={city} country={country} />
         <main className={styles.main}>
           <div className="flex justify-center items-center h-96">
             <div className="text-lg">Loading events...</div>
@@ -287,7 +281,7 @@ export default function FeedClient({ location }: FeedClientProps) {
   if (error) {
     return (
       <div className={styles.page}>
-        <Header location={location} />
+        <Header city={city} country={country} />
         <main className={styles.main}>
           <div className="flex justify-center items-center h-96">
             <div className="text-lg text-red-600">Error: {error}</div>
@@ -327,7 +321,8 @@ export default function FeedClient({ location }: FeedClientProps) {
         earliestEventDate={visibleEventDate}
         onDayClick={handleDayClick}
         availableDates={availableDates}
-        location={location}
+        city={city}
+        country={country}
       />
       <main
         className={styles.main}

@@ -11,16 +11,17 @@ interface HeaderProps {
   earliestEventDate?: string;
   onDayClick?: (day: Date) => void;
   availableDates?: string[]; // formatted as YYYY-MM-DD
-  location: string;
+  country: string;
+  city: string;
 }
 
 export default function Header(props: HeaderProps) {
-  const { earliestEventDate, onDayClick, availableDates, location } = props;
+  const { earliestEventDate, onDayClick, availableDates, country, city } = props;
   const telegramUrl = process.env.NEXT_PUBLIC_TELEGRAM_URL;
   const githubUrl = process.env.NEXT_PUBLIC_GITHUB_URL;
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [locationTipOpen, setLocationTipOpen] = React.useState(false);
-  const locationLabel = normalizeLocationTitle(location);
+  const locationLabel = city ? normalizeLocationTitle(city) : country.toUpperCase();
 
   return (
     <header

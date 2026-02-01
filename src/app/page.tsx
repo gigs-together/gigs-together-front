@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
 export default function RootPage() {
-  redirect('/feed/barcelona');
+  redirect('/feed/es/barcelona');
 }
