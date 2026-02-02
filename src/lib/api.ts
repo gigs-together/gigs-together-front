@@ -15,19 +15,32 @@ export async function apiRequest<TResponse = unknown, TBody = unknown>(
   endpointOrUrl: string,
   method: HttpMethod,
   data?: TBody,
+  init?: RequestInit,
 ): Promise<TResponse> {
   try {
     const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
 
+    const headers = new Headers(init?.headers);
+    if (isFormData) {
+      // Avoid breaking multipart boundary if caller accidentally set a Content-Type
+      if (headers.has('Content-Type')) headers.delete('Content-Type');
+    } else {
+      // Default for JSON payloads; caller can override via init.headers
+      if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+    }
+
+    const body =
+      method !== 'GET' && method !== 'HEAD' && data
+        ? isFormData
+          ? (data as unknown as FormData)
+          : JSON.stringify(data)
+        : undefined;
+
     const response = await fetch(buildUrl(endpointOrUrl), {
+      ...init,
       method,
-      headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
-      body:
-        method !== 'GET' && method !== 'HEAD' && data
-          ? isFormData
-            ? (data as unknown as FormData)
-            : JSON.stringify(data)
-          : undefined,
+      headers,
+      body,
     });
 
     const contentType = response.headers.get('Content-Type') || '';

@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import { CountriesProvider } from '@/app/_components/CountriesProvider';
+import { getCountries } from '@/lib/countries.server';
 
 const geistSans = localFont({
   src: '../../public/fonts/GeistVF.woff',
@@ -22,11 +24,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const countries = await getCountries('en');
+
   return (
-    <html lang="en">
+    <html>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {children}
+        <CountriesProvider countries={countries}>{children}</CountriesProvider>
         <Toaster />
       </body>
     </html>

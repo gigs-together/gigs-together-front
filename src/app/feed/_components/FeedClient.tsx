@@ -8,9 +8,9 @@ import { toLocalYMD } from '@/lib/utils';
 import '@/app/style.css';
 import { MonthSection } from '@/app/_components/MonthSection';
 import { GigCard } from '@/app/_components/GigCard';
-import type { Event, V1GigGetResponseBody } from '@/lib/types';
+import type { Event, V1GigGetResponseBody, V1GigGetResponseBodyGig } from '@/lib/types';
 import { apiRequest } from '@/lib/api';
-import { gigDtoToEvent } from '@/lib/gigs';
+import { useCountries } from '@/app/_components/CountriesProvider';
 
 type FeedClientProps = {
   country: string; // ISO like "es"
@@ -57,7 +57,59 @@ function useHeaderHeight(selector = '[data-app-header]', fallback = 44) {
   return h; // value in pixels
 }
 
+const gigDateToYMD = (date: V1GigGetResponseBodyGig['date']): string => {
+  if (typeof date === 'number') {
+    return toLocalYMD(new Date(toMs(date)));
+  }
+
+  const s = String(date).trim();
+
+  // "1705257600000" or "1705257600"
+  if (/^\d+$/.test(s)) {
+    const n = Number(s);
+    return toLocalYMD(new Date(toMs(n)));
+  }
+
+  // ISO "2026-01-14T19:00:00.000Z"
+  if (s.includes('T')) return s.slice(0, 10);
+
+  // "YYYY-MM-DD"
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  // last resort parse
+  const d = new Date(s);
+  if (!Number.isNaN(d.getTime())) return toLocalYMD(d);
+
+  return s;
+};
+
+const toMs = (n: number) => (n < 1_000_000_000_000 ? n * 1000 : n); // seconds -> ms (heuristic)
+
+export function gigDtoToEvent(
+  gig: V1GigGetResponseBodyGig,
+  idx: number,
+  countryName: string,
+): Event {
+  const date = gigDateToYMD(gig.date);
+
+  return {
+    id: `${date}-${idx}`,
+    date,
+    poster: gig.posterUrl,
+    title: gig.title,
+    venue: gig.venue,
+    city: gig.city,
+    country: {
+      iso: gig.country,
+      name: countryName,
+    },
+    ticketsUrl: gig.ticketsUrl,
+    calendarUrl: gig.calendarUrl,
+  };
+}
+
 export default function FeedClient({ country, city }: FeedClientProps) {
+  const { countriesDictionary } = useCountries();
   const headerH = useHeaderHeight(); // will pick [data-app-header], fallback 44
 
   const [events, setEvents] = useState<Event[]>([]);
@@ -122,7 +174,9 @@ export default function FeedClient({ country, city }: FeedClientProps) {
         const res = await apiRequest<V1GigGetResponseBody>(`v1/gig?${qs.toString()}`, 'GET');
 
         const pageOffset = (nextPage - 1) * PAGE_SIZE;
-        const mapped = res.gigs.map((gig, idx) => gigDtoToEvent(gig, pageOffset + idx));
+        const mapped = res.gigs.map((gig, idx) =>
+          gigDtoToEvent(gig, pageOffset + idx, countriesDictionary?.[gig.country]),
+        );
 
         setEvents((prev) => {
           const merged = mode === 'replace' ? mapped : [...prev, ...mapped];
@@ -142,7 +196,7 @@ export default function FeedClient({ country, city }: FeedClientProps) {
         inFlightRef.current = false;
       }
     },
-    [city, country],
+    [city, country, countriesDictionary],
   );
 
   // Initial load (refetch when params change)
