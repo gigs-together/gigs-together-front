@@ -10,7 +10,6 @@ import { MonthSection } from '@/app/_components/MonthSection';
 import { GigCard } from '@/app/_components/GigCard';
 import type { Event, V1GigGetResponseBody, V1GigGetResponseBodyGig } from '@/lib/types';
 import { apiRequest } from '@/lib/api';
-import { useCountries } from '@/app/_components/CountriesProvider';
 
 type FeedClientProps = {
   country: string; // ISO like "es"
@@ -85,11 +84,7 @@ const gigDateToYMD = (date: V1GigGetResponseBodyGig['date']): string => {
 
 const toMs = (n: number) => (n < 1_000_000_000_000 ? n * 1000 : n); // seconds -> ms (heuristic)
 
-export function gigDtoToEvent(
-  gig: V1GigGetResponseBodyGig,
-  idx: number,
-  countryName: string,
-): Event {
+export function gigDtoToEvent(gig: V1GigGetResponseBodyGig, idx: number): Event {
   const date = gigDateToYMD(gig.date);
 
   return {
@@ -101,7 +96,7 @@ export function gigDtoToEvent(
     city: gig.city,
     country: {
       iso: gig.country,
-      name: countryName,
+      name: gig.country, // TODO: translations
     },
     ticketsUrl: gig.ticketsUrl,
     calendarUrl: gig.calendarUrl,
@@ -109,7 +104,6 @@ export function gigDtoToEvent(
 }
 
 export default function FeedClient({ country, city }: FeedClientProps) {
-  const { countriesDictionary } = useCountries();
   const headerH = useHeaderHeight(); // will pick [data-app-header], fallback 44
 
   const [events, setEvents] = useState<Event[]>([]);
@@ -174,9 +168,7 @@ export default function FeedClient({ country, city }: FeedClientProps) {
         const res = await apiRequest<V1GigGetResponseBody>(`v1/gig?${qs.toString()}`, 'GET');
 
         const pageOffset = (nextPage - 1) * PAGE_SIZE;
-        const mapped = res.gigs.map((gig, idx) =>
-          gigDtoToEvent(gig, pageOffset + idx, countriesDictionary?.[gig.country]),
-        );
+        const mapped = res.gigs.map((gig, idx) => gigDtoToEvent(gig, pageOffset + idx));
 
         setEvents((prev) => {
           const merged = mode === 'replace' ? mapped : [...prev, ...mapped];
@@ -196,7 +188,7 @@ export default function FeedClient({ country, city }: FeedClientProps) {
         inFlightRef.current = false;
       }
     },
-    [city, country, countriesDictionary],
+    [city, country],
   );
 
   // Initial load (refetch when params change)

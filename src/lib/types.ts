@@ -38,4 +38,6 @@ export interface V1GigGetResponseBodyGig {
   calendarUrl?: string;
 }
 
+export type Language = 'en' | 'ru' | 'es' | string;
+
 export {};

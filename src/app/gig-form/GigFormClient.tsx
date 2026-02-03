@@ -21,7 +21,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import Script from 'next/script';
 import { apiRequest } from '@/lib/api';
 import { Separator } from '@/components/ui/separator';
-import { useCountries } from '@/app/_components/CountriesProvider';
+import type { Country } from '@/lib/countries.server';
 
 const formSchema = z.object({
   title: z.string().min(2, {
@@ -64,8 +64,11 @@ function dateToYMD(date?: string): string | undefined {
   return d.toISOString().slice(0, 10);
 }
 
-export default function GigFormClient() {
-  const { countriesList, countriesDictionary } = useCountries();
+interface GigFormClientProps {
+  countries: Country[];
+}
+
+export default function GigFormClient({ countries }: GigFormClientProps) {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isLookingUp, setIsLookingUp] = useState<boolean>(false);
   const [posterMode, setPosterMode] = useState<'upload' | 'url'>('upload');
@@ -182,7 +185,7 @@ export default function GigFormClient() {
       const name = form.getValues('title')?.trim();
       const city = form.getValues('city')?.trim();
       const country = form.getValues('country')?.trim();
-      const location = [city, countriesDictionary[country]].filter(Boolean).join(', ');
+      const location = [city, country].filter(Boolean).join(', ');
       const res = await apiRequest<GigLookupResponse>('v1/gig/lookup', 'POST', { name, location });
       const data: GigLookupResponse = res?.gig ?? res ?? {};
 
@@ -260,9 +263,10 @@ export default function GigFormClient() {
                           value={field.value ?? 'ES'}
                           className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                         >
-                          {countriesList.map((c) => (
-                            <option key={c.iso} value={c.iso}>
-                              {c.name}
+                          {countries.map((country) => (
+                            <option key={country.iso} value={country.iso}>
+                              {/* TODO: translations */}
+                              {country.iso}
                             </option>
                           ))}
                         </select>
