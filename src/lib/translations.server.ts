@@ -19,7 +19,11 @@ export interface V1LanguageGetTranslationsResponseBody {
   readonly translations: V1TranslationsByNamespace;
 }
 
-const TRANSLATIONS_REVALIDATE_SECONDS = 60 * 60; // 1h
+const getTranslationsRevalidateSeconds = (): number | false => {
+  const value = Number(process.env.NEXT_TRANSLATIONS_REVALIDATE_SECONDS);
+  return isNaN(value) ? false : value;
+};
+const TRANSLATIONS_REVALIDATE_SECONDS = getTranslationsRevalidateSeconds(); // 1h
 
 const DEFAULT_LANGUAGE: Language = 'en';
 
@@ -36,9 +40,17 @@ const DEFAULT_LANGUAGE: Language = 'en';
  */
 export async function getTranslations(
   language: Language = DEFAULT_LANGUAGE,
-  namespaces: readonly string[] = [],
+  namespaces: string | readonly string[] = [],
 ): Promise<V1LanguageGetTranslationsResponseBody> {
-  const nsQuery = namespaces?.join(',');
+  const namespacesList =
+    typeof namespaces === 'string'
+      ? namespaces
+          .split(',')
+          .map((x) => x.trim())
+          .filter(Boolean)
+      : namespaces;
+
+  const nsQuery = namespacesList?.join(',');
 
   const acceptLanguage = language;
 
@@ -55,7 +67,7 @@ export async function getTranslations(
       // tags: [
       //   TRANSLATIONS_TAG_ALL,
       //   ...(acceptLanguage ? [tagLocale(acceptLanguage)] : []),
-      //   ...(namespaces ? namespaces.map(tagNamespace) : []),
+      //   ...(namespacesList ? namespacesList.map(tagNamespace) : []),
       // ],
     },
   });

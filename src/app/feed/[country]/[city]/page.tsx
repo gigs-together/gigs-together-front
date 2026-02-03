@@ -13,7 +13,7 @@ export default async function Page(props: PageProps<'/feed/[country]/[city]'>) {
     redirect('/feed/es/barcelona');
   }
 
-  const i18n = await getTranslations('en', ['country']);
+  const i18n = await getTranslations('en', 'country');
 
   return (
     <I18nProvider locale={i18n.locale} translations={i18n.translations}>

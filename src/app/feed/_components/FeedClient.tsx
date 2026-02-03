@@ -163,7 +163,7 @@ export default function FeedClient({ country, city }: FeedClientProps) {
             city: gig.city,
             country: {
               iso: gig.country,
-              name: gig.country ? t('countries', gig.country) : '',
+              name: gig.country ? t('country', gig.country) : '',
             },
             ticketsUrl: gig.ticketsUrl,
             calendarUrl: gig.calendarUrl,
