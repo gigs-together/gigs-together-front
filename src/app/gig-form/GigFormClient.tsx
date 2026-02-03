@@ -22,6 +22,7 @@ import Script from 'next/script';
 import { apiRequest } from '@/lib/api';
 import { Separator } from '@/components/ui/separator';
 import type { Country } from '@/lib/countries.server';
+import { useT } from '@/lib/i18n/I18nProvider';
 
 const formSchema = z.object({
   title: z.string().min(2, {
@@ -69,6 +70,7 @@ interface GigFormClientProps {
 }
 
 export default function GigFormClient({ countries }: GigFormClientProps) {
+  const t = useT();
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isLookingUp, setIsLookingUp] = useState<boolean>(false);
   const [posterMode, setPosterMode] = useState<'upload' | 'url'>('upload');
@@ -265,8 +267,7 @@ export default function GigFormClient({ countries }: GigFormClientProps) {
                         >
                           {countries.map((country) => (
                             <option key={country.iso} value={country.iso}>
-                              {/* TODO: translations */}
-                              {country.iso}
+                              {t('countries', country.iso)}
                             </option>
                           ))}
                         </select>

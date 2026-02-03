@@ -10,6 +10,7 @@ import { MonthSection } from '@/app/_components/MonthSection';
 import { GigCard } from '@/app/_components/GigCard';
 import type { Event, V1GigGetResponseBody, V1GigGetResponseBodyGig } from '@/lib/types';
 import { apiRequest } from '@/lib/api';
+import { useT } from '@/lib/i18n/I18nProvider';
 
 type FeedClientProps = {
   country: string; // ISO like "es"
@@ -84,26 +85,8 @@ const gigDateToYMD = (date: V1GigGetResponseBodyGig['date']): string => {
 
 const toMs = (n: number) => (n < 1_000_000_000_000 ? n * 1000 : n); // seconds -> ms (heuristic)
 
-export function gigDtoToEvent(gig: V1GigGetResponseBodyGig, idx: number): Event {
-  const date = gigDateToYMD(gig.date);
-
-  return {
-    id: `${date}-${idx}`,
-    date,
-    poster: gig.posterUrl,
-    title: gig.title,
-    venue: gig.venue,
-    city: gig.city,
-    country: {
-      iso: gig.country,
-      name: gig.country, // TODO: translations
-    },
-    ticketsUrl: gig.ticketsUrl,
-    calendarUrl: gig.calendarUrl,
-  };
-}
-
 export default function FeedClient({ country, city }: FeedClientProps) {
+  const t = useT();
   const headerH = useHeaderHeight(); // will pick [data-app-header], fallback 44
 
   const [events, setEvents] = useState<Event[]>([]);
@@ -168,7 +151,24 @@ export default function FeedClient({ country, city }: FeedClientProps) {
         const res = await apiRequest<V1GigGetResponseBody>(`v1/gig?${qs.toString()}`, 'GET');
 
         const pageOffset = (nextPage - 1) * PAGE_SIZE;
-        const mapped = res.gigs.map((gig, idx) => gigDtoToEvent(gig, pageOffset + idx));
+        const mapped = res.gigs.map((gig, idx) => {
+          const date = gigDateToYMD(gig.date);
+
+          return {
+            id: `${date}-${pageOffset + idx}`,
+            date,
+            poster: gig.posterUrl,
+            title: gig.title,
+            venue: gig.venue,
+            city: gig.city,
+            country: {
+              iso: gig.country,
+              name: gig.country ? t('countries', gig.country) : '',
+            },
+            ticketsUrl: gig.ticketsUrl,
+            calendarUrl: gig.calendarUrl,
+          };
+        });
 
         setEvents((prev) => {
           const merged = mode === 'replace' ? mapped : [...prev, ...mapped];
@@ -188,7 +188,7 @@ export default function FeedClient({ country, city }: FeedClientProps) {
         inFlightRef.current = false;
       }
     },
-    [city, country],
+    [city, country, t],
   );
 
   // Initial load (refetch when params change)
