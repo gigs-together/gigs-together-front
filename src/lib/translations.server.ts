@@ -21,6 +21,8 @@ export interface V1LanguageGetTranslationsResponseBody {
 
 const TRANSLATIONS_REVALIDATE_SECONDS = 60 * 60; // 1h
 
+const DEFAULT_LANGUAGE: Language = 'en';
+
 // const TRANSLATIONS_TAG_ALL = 'translations';
 // const tagLocale = (locale: string) => `translations:locale:${locale}`;
 // const tagNamespace = (ns: string) => `translations:ns:${ns}`;
@@ -33,8 +35,8 @@ const TRANSLATIONS_REVALIDATE_SECONDS = 60 * 60; // 1h
  * - Adds cache tags so you can manually revalidate via `revalidateTag()`
  */
 export async function getTranslations(
-  namespaces?: readonly string[],
-  language?: Language,
+  language: Language = DEFAULT_LANGUAGE,
+  namespaces: readonly string[] = [],
 ): Promise<V1LanguageGetTranslationsResponseBody> {
   const nsQuery = namespaces?.join(',');
 
@@ -46,7 +48,8 @@ export async function getTranslations(
   const url = `/v1/language/translations${qs.size ? `?${qs.toString()}` : ''}`;
 
   const data = await apiRequest<V1LanguageGetTranslationsResponseBody>(url, 'GET', undefined, {
-    headers: acceptLanguage ? { 'accept-language': acceptLanguage } : undefined,
+    // Explicitly set accept-language; otherwise some runtimes send "*" by default.
+    headers: { 'accept-language': acceptLanguage },
     next: {
       revalidate: TRANSLATIONS_REVALIDATE_SECONDS,
       // tags: [
