@@ -2,7 +2,7 @@
 
 import TopForm from '@/app/_components/TopForm';
 import { useState, useCallback } from 'react';
-import { FaBars, FaGithub, FaTelegramPlane } from 'react-icons/fa';
+import { FaBars, FaGithub, FaRegLightbulb, FaTelegramPlane } from 'react-icons/fa';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { LocationIcon } from '@/components/ui/location-icon';
 import { normalizeLocationTitle } from '@/lib/utils';
@@ -19,6 +19,7 @@ export default function Header(props: HeaderProps) {
   const { earliestEventDate, onDayClick, availableDates, country, city } = props;
   const telegramUrl = process.env.NEXT_PUBLIC_TELEGRAM_URL;
   const githubUrl = process.env.NEXT_PUBLIC_GITHUB_URL;
+  const suggestGigUrl = process.env.NEXT_PUBLIC_SUGGEST_GIG_LINK;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [locationTipOpen, setLocationTipOpen] = useState(false);
   const locationLabel = city ? normalizeLocationTitle(city) : country.toUpperCase();
@@ -80,6 +81,20 @@ export default function Header(props: HeaderProps) {
                   Currently, we only support one location: Barcelona.
                 </PopoverContent>
               </Popover>
+              {!!suggestGigUrl && (
+                <a
+                  href={suggestGigUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center rounded-md bg-black px-2 py-1.5 text-sm font-medium text-white hover:bg-black/90 whitespace-nowrap lg:px-3"
+                  aria-label="Suggest a gig"
+                  title="Suggest a gig"
+                >
+                  <span className="hidden lg:inline">Suggest a gig</span>
+                  <FaRegLightbulb className="text-[1.05em] lg:hidden" aria-hidden />
+                </a>
+              )}
+
               {!!telegramUrl && (
                 <a
                   href={telegramUrl}
@@ -113,6 +128,22 @@ export default function Header(props: HeaderProps) {
                 </PopoverTrigger>
                 <PopoverContent align="end" className="w-56 p-2">
                   <div className="flex flex-col gap-1">
+                    {!!suggestGigUrl && (
+                      <>
+                        <a
+                          href={suggestGigUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-muted"
+                          onClick={() => setMobileMenuOpen(false)}
+                          aria-label="Suggest a gig"
+                        >
+                          <FaRegLightbulb className="h-4 w-4" />
+                          Suggest a gig
+                        </a>
+                        <div className="my-0.5 h-px w-full bg-border/40" aria-hidden />
+                      </>
+                    )}
                     <Popover>
                       <PopoverTrigger asChild>
                         <button
@@ -154,7 +185,7 @@ export default function Header(props: HeaderProps) {
                         className="flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-muted"
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        <FaGithub className="text-lg" />
+                        <FaGithub className="h-4 w-4" />
                         GitHub
                       </a>
                     )}

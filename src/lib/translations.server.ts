@@ -20,7 +20,7 @@ export interface V1LanguageGetTranslationsResponseBody {
 }
 
 const getTranslationsRevalidateSeconds = (): number | false => {
-  const value = Number(process.env.NEXT_TRANSLATIONS_REVALIDATE_SECONDS);
+  const value = Number(process.env.NEXT_PUBLIC_TRANSLATIONS_REVALIDATE_SECONDS);
   return isNaN(value) ? false : value;
 };
 const TRANSLATIONS_REVALIDATE_SECONDS = getTranslationsRevalidateSeconds(); // 1h
