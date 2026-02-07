@@ -1,7 +1,7 @@
 'use client';
 
 import TopForm from '@/app/_components/TopForm';
-import React from 'react';
+import { useState, useCallback } from 'react';
 import { FaBars, FaGithub, FaTelegramPlane } from 'react-icons/fa';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { LocationIcon } from '@/components/ui/location-icon';
@@ -19,9 +19,18 @@ export default function Header(props: HeaderProps) {
   const { earliestEventDate, onDayClick, availableDates, country, city } = props;
   const telegramUrl = process.env.NEXT_PUBLIC_TELEGRAM_URL;
   const githubUrl = process.env.NEXT_PUBLIC_GITHUB_URL;
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
-  const [locationTipOpen, setLocationTipOpen] = React.useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [locationTipOpen, setLocationTipOpen] = useState(false);
   const locationLabel = city ? normalizeLocationTitle(city) : country.toUpperCase();
+
+  const onLogoClick = useCallback(() => {
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    window.scrollTo({ top: 0, left: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+  }, []);
 
   return (
     <header
@@ -32,7 +41,15 @@ export default function Header(props: HeaderProps) {
         <div className="flex items-center w-full h-full">
           <div className="basis-0 flex-1 shrink-1">
             <h1 className="text-xl font-semibold whitespace-nowrap">
-              Gigs<span className="hidden sm:inline"> Together</span>!
+              <button
+                type="button"
+                onClick={onLogoClick}
+                className="cursor-pointer select-none"
+                aria-label="Scroll to top"
+                title="Scroll to top"
+              >
+                Gigs<span className="hidden sm:inline"> Together</span>!
+              </button>
             </h1>
           </div>
           <div className="flex-1"></div>
