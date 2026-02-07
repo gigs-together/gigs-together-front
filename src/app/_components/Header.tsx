@@ -39,8 +39,8 @@ export default function Header(props: HeaderProps) {
       className="bg-background border-b fixed top-0 left-0 w-full z-50 h-[45px]"
     >
       <div className="w-full px-4 h-full">
-        <div className="flex items-center w-full h-full">
-          <div className="basis-0 flex-1 shrink-1">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center w-full h-full">
+          <div className="min-w-0 justify-self-start">
             <h1 className="text-xl font-semibold whitespace-nowrap">
               <button
                 type="button"
@@ -53,16 +53,14 @@ export default function Header(props: HeaderProps) {
               </button>
             </h1>
           </div>
-          <div className="flex-1"></div>
-          <div className="flex items-center space-x-4">
+          <div className="min-w-0 justify-self-center">
             <TopForm
               visibleEventDate={earliestEventDate}
               onDayClick={onDayClick}
               availableDates={availableDates}
             />
           </div>
-          <div className="flex-1"></div>
-          <div className="flex items-center space-x-4 basis-0 flex-1 shrink-1 justify-end">
+          <div className="min-w-0 justify-self-end flex items-center space-x-4">
             {/* Desktop actions */}
             <div className="hidden sm:flex items-center space-x-4">
               <Popover open={locationTipOpen} onOpenChange={setLocationTipOpen}>
