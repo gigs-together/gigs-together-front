@@ -150,12 +150,11 @@ export default function FeedClient({ country, city }: FeedClientProps) {
 
         const res = await apiRequest<V1GigGetResponseBody>(`v1/gig?${qs.toString()}`, 'GET');
 
-        const pageOffset = (nextPage - 1) * PAGE_SIZE;
-        const mapped = res.gigs.map((gig, idx) => {
+        const mapped = res.gigs.map((gig) => {
           const date = gigDateToYMD(gig.date);
 
           return {
-            id: `${date}-${pageOffset + idx}`,
+            id: gig.id,
             date,
             poster: gig.posterUrl,
             title: gig.title,
@@ -356,7 +355,7 @@ export default function FeedClient({ country, city }: FeedClientProps) {
     // `scrollIntoView` can overshoot in our layout; compute the scroll position manually.
     const headerPx = headerOffsetHeightRef.current ?? 0;
     // Tune this if needed: positive value means "stop a bit earlier" (less scroll down).
-    const EXTRA_OFFSET_PX = 30;
+    const EXTRA_OFFSET_PX = 32;
     const top = window.scrollY + target.getBoundingClientRect().top - headerPx - EXTRA_OFFSET_PX;
     window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
   };
@@ -401,12 +400,11 @@ export default function FeedClient({ country, city }: FeedClientProps) {
                     return (
                       <Fragment key={event.id}>
                         <div
+                          id={event.id}
                           data-date={isFirstOfDate ? event.date : undefined}
                           data-event-id={event.id}
                           ref={(el) => registerEventRef(event.id, el)}
-                          className={
-                            isFirstOfDate ? 'scroll-mt-[calc(var(--header-h)_-_10px)]' : undefined
-                          }
+                          className="gig-anchor"
                         >
                           <GigCard gig={event} />
                         </div>

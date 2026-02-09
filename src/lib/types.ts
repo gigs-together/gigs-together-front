@@ -28,6 +28,7 @@ export interface V1GigGetResponseBody {
 }
 
 export interface V1GigGetResponseBodyGig {
+  id: string;
   title: string;
   date: string;
   city: string;
