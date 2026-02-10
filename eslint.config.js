@@ -27,7 +27,7 @@ export default tseslint.config(
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
     languageOptions: {
-      ecmaVersion: 2020,
+      ecmaVersion: 'latest',
       globals: { ...globals.browser, Telegram: 'readonly' },
     },
     settings: {
@@ -49,7 +49,9 @@ export default tseslint.config(
       ...nextPlugin.configs.recommended.rules,
       ...nextPlugin.configs['core-web-vitals'].rules,
       ...reactHooks.configs.recommended.rules,
+      ...react.configs.recommended.rules,
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      'react/react-in-jsx-scope': 'off',
       'react/jsx-tag-spacing': [
         'error',
         {

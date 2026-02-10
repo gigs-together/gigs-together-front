@@ -8,6 +8,11 @@ body {
   overflow-x: hidden;
 }
 
+html {
+  /* Make hash navigation account for the fixed header */
+  scroll-padding-top: calc(var(--header-h) + 32px);
+}
+
 body {
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -53,6 +58,8 @@ a {
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
+    /* Default header height for SSR/hash navigation (updated on client). */
+    --header-h: 45px;
   }
 
   .dark {
@@ -123,4 +130,89 @@ a {
     rgba(75, 85, 99, 1) 40%,
     rgba(75, 85, 99, 1) 100%
   );
+}
+
+/* Highlight card when navigated via hash anchor */
+@keyframes gig-anchor-highlight {
+  0% {
+    opacity: 0;
+    box-shadow:
+      0 10px 22px hsl(var(--foreground) / 0),
+      0 2px 6px hsl(var(--foreground) / 0);
+  }
+  35% {
+    opacity: 1;
+    box-shadow:
+      0 14px 30px hsl(var(--foreground) / 0.1),
+      0 4px 10px hsl(var(--foreground) / 0.08);
+  }
+  70% {
+    opacity: 1;
+    box-shadow:
+      0 12px 26px hsl(var(--foreground) / 0.08),
+      0 3px 8px hsl(var(--foreground) / 0.06);
+  }
+  100% {
+    opacity: 0;
+    box-shadow:
+      0 10px 22px hsl(var(--foreground) / 0),
+      0 2px 6px hsl(var(--foreground) / 0);
+  }
+}
+
+@keyframes gig-anchor-pop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.012);
+  }
+  70% {
+    transform: scale(1.006);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.gig-anchor {
+  /* Match `rounded-lg` on the card (Tailwind default = 0.5rem). */
+  border-radius: var(--radius);
+  position: relative;
+}
+
+/* Highlight the currently targeted gig (#<id>) */
+.gig-anchor:target {
+  transform-origin: center;
+  will-change: transform;
+  z-index: 2;
+  animation: gig-anchor-pop 1.35s ease-out 0s 1;
+}
+
+.gig-anchor:target::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  will-change: opacity, box-shadow;
+  animation: gig-anchor-highlight 1.35s ease-out 0s 1;
+}
+
+/* Used to re-trigger the animation on initial load with hash */
+.gig-anchor.gig-anchor-auto {
+  transform-origin: center;
+  will-change: transform;
+  z-index: 2;
+  animation: gig-anchor-pop 1.35s ease-out 0s 1;
+}
+
+.gig-anchor.gig-anchor-auto::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  will-change: opacity, box-shadow;
+  animation: gig-anchor-highlight 1.35s ease-out 0s 1;
 }
