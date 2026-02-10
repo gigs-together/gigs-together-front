@@ -1,7 +1,9 @@
 'use client';
 
 import TopForm from '@/app/_components/TopForm';
-import { useState, useCallback } from 'react';
+import Link from 'next/link';
+import type { Route } from 'next';
+import { useState } from 'react';
 import { FaBars, FaGithub, FaRegLightbulb, FaTelegramPlane } from 'react-icons/fa';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { LocationIcon } from '@/components/ui/location-icon';
@@ -23,15 +25,7 @@ export default function Header(props: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [locationTipOpen, setLocationTipOpen] = useState(false);
   const locationLabel = city ? normalizeLocationTitle(city) : country.toUpperCase();
-
-  const onLogoClick = useCallback(() => {
-    const prefersReducedMotion =
-      typeof window !== 'undefined' &&
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    window.scrollTo({ top: 0, left: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
-  }, []);
+  const homeHref = (city ? `/feed/${country}/${city}` : `/feed/${country}`) as Route;
 
   return (
     <header
@@ -42,15 +36,14 @@ export default function Header(props: HeaderProps) {
         <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center w-full h-full">
           <div className="min-w-0 justify-self-start">
             <h1 className="text-xl font-semibold whitespace-nowrap">
-              <button
-                type="button"
-                onClick={onLogoClick}
+              <Link
+                href={homeHref}
                 className="cursor-pointer select-none"
-                aria-label="Scroll to top"
-                title="Scroll to top"
+                aria-label="Go to home"
+                title="Go to home"
               >
                 Gigs<span className="hidden sm:inline"> Together</span>!
-              </button>
+              </Link>
             </h1>
           </div>
           <div className="min-w-0 justify-self-center">
