@@ -185,7 +185,7 @@ a {
 .gig-anchor:target {
   transform-origin: center;
   will-change: transform;
-  z-index: 50;
+  z-index: 2;
   animation: gig-anchor-pop 1.35s ease-out 0s 1;
 }
 
@@ -195,7 +195,6 @@ a {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  z-index: 60;
   will-change: opacity, box-shadow;
   animation: gig-anchor-highlight 1.35s ease-out 0s 1;
 }
@@ -204,7 +203,7 @@ a {
 .gig-anchor.gig-anchor-auto {
   transform-origin: center;
   will-change: transform;
-  z-index: 50;
+  z-index: 2;
   animation: gig-anchor-pop 1.35s ease-out 0s 1;
 }
 
@@ -214,7 +213,6 @@ a {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  z-index: 60;
   will-change: opacity, box-shadow;
   animation: gig-anchor-highlight 1.35s ease-out 0s 1;
 }
