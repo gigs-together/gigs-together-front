@@ -32,7 +32,8 @@ export function GigCard({ gig }: GigCardProps) {
 
   useEffect(() => {
     // Reset when card changes (e.g. pagination / new src)
-    setImgLoaded(imgRef.current?.complete ?? false);
+    const loaded = imgRef.current?.complete ?? false;
+    setImgLoaded(loaded);
   }, [gig.poster]);
 
   return (
