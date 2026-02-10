@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
 import type { Event } from '@/lib/types';
 import { LocationIcon } from '@/components/ui/location-icon';
 import { Calendar, Ticket } from 'lucide-react';
+import { GigPoster } from '@/app/_components/GigPoster';
 
 type GigCardProps = {
   gig: Event;
@@ -27,41 +27,11 @@ export function GigCard({ gig }: GigCardProps) {
   const mapsHref = location
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`
     : undefined;
-  const imgRef = useRef<HTMLImageElement>(null);
-  const [imgLoaded, setImgLoaded] = useState(false);
-
-  useEffect(() => {
-    // Reset when card changes (e.g. pagination / new src)
-    setImgLoaded(imgRef.current?.complete ?? false);
-  }, [gig.poster]);
 
   return (
     <div className="flex w-full flex-col bg-white rounded-lg dark:bg-gray-800 dark:border-gray-700">
       {gig.poster ? (
-        <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
-          {/* Skeleton */}
-          {!imgLoaded ? (
-            <div
-              className="absolute inset-0 skeleton-shimmer"
-              // Fallback so there's no "blank -> skeleton" flash before CSS loads
-              style={{ backgroundColor: '#e5e7eb' }}
-              aria-hidden
-            />
-          ) : null}
-
-          {/* TODO: Consider using `<Image />` from `next/image`  */}
-          <img
-            className={`h-full w-full object-cover transition-opacity duration-200 ${
-              imgLoaded ? 'opacity-100' : 'opacity-0'
-            }`}
-            ref={imgRef}
-            src={gig.poster}
-            alt={gig.title}
-            loading="lazy"
-            onLoad={() => setImgLoaded(true)}
-            onError={() => setImgLoaded(true)}
-          />
-        </div>
+        <GigPoster key={gig.poster} poster={gig.poster} title={gig.title} />
       ) : (
         <div className="w-full aspect-[3/4] rounded-lg bg-gray-100 dark:bg-gray-700" aria-hidden />
       )}
