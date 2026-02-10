@@ -199,3 +199,22 @@ a {
   will-change: opacity, box-shadow;
   animation: gig-anchor-highlight 1.35s ease-out 0s 1;
 }
+
+/* Used to re-trigger the animation on initial load with hash */
+.gig-anchor.gig-anchor-auto {
+  transform-origin: center;
+  will-change: transform;
+  z-index: 50;
+  animation: gig-anchor-pop 1.35s ease-out 0s 1;
+}
+
+.gig-anchor.gig-anchor-auto::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 60;
+  will-change: opacity, box-shadow;
+  animation: gig-anchor-highlight 1.35s ease-out 0s 1;
+}

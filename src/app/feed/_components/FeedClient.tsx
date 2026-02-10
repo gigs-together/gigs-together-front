@@ -107,6 +107,8 @@ export default function FeedClient({ country, city }: FeedClientProps) {
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const inFlightRef = useRef(false);
   const hasUserScrolledRef = useRef(false);
+  const lastAutoScrolledHashRef = useRef<string | null>(null);
+  const autoHighlightTimeoutRef = useRef<number | undefined>(undefined);
 
   // list of dates that actually have events (YYYY-MM-DD) — used to disable other days in the calendar
   const availableDates = useMemo(() => {
@@ -194,6 +196,43 @@ export default function FeedClient({ country, city }: FeedClientProps) {
   useEffect(() => {
     fetchPage(1, 'replace');
   }, [fetchPage]);
+
+  // When opening a URL that already contains a hash, the browser tries to scroll
+  // before the feed items exist (because we load them client-side). Re-try once
+  // after events render.
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash) {
+      lastAutoScrolledHashRef.current = null;
+      return;
+    }
+    if (lastAutoScrolledHashRef.current === hash) return;
+
+    const id = hash.startsWith('#') ? hash.slice(1) : hash;
+    if (!id) return;
+
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    lastAutoScrolledHashRef.current = hash;
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ block: 'start', inline: 'nearest' });
+      // Re-trigger highlight on initial load (when :target may have already "happened")
+      el.classList.remove('gig-anchor-auto');
+      // Force a reflow so the browser commits the class removal; otherwise
+      // remove+add can be batched and the CSS animation won't restart.
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      el.offsetWidth;
+      el.classList.add('gig-anchor-auto');
+
+      if (autoHighlightTimeoutRef.current) {
+        window.clearTimeout(autoHighlightTimeoutRef.current);
+      }
+      autoHighlightTimeoutRef.current = window.setTimeout(() => {
+        el.classList.remove('gig-anchor-auto');
+      }, 1800);
+    });
+  }, [events]);
 
   // Don't auto-load more until the user scrolls (prevents "burst" requests on short lists)
   useEffect(() => {
