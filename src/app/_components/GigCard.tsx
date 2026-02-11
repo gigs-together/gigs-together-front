@@ -1,6 +1,7 @@
 import type { Event } from '@/lib/types';
 import { LocationIcon } from '@/components/ui/location-icon';
 import { Calendar, Ticket } from 'lucide-react';
+import { FaTelegramPlane } from 'react-icons/fa';
 import { GigPoster } from '@/app/_components/GigPoster';
 
 type GigCardProps = {
@@ -27,6 +28,7 @@ export function GigCard({ gig }: GigCardProps) {
   const mapsHref = location
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`
     : undefined;
+  const telegramUrl = process.env.NEXT_PUBLIC_TELEGRAM_URL;
 
   return (
     <div className="flex w-full flex-col bg-white rounded-lg dark:bg-gray-800 dark:border-gray-700">
@@ -98,17 +100,39 @@ export function GigCard({ gig }: GigCardProps) {
             </p>
           ) : null}*/}
         </div>
-        {gig.ticketsUrl ? (
-          <a
-            href={gig.ticketsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex w-full min-w-0 flex-row gap-2 items-center text-gray-500 transition-colors hover:text-gray-700 dark:hover:text-violet-400"
-            title="Open tickets"
-          >
-            <Ticket className="h-4 w-4 shrink-0" aria-hidden />
-            <span className="min-w-0 flex-1 truncate">Tickets</span>
-          </a>
+        {gig.ticketsUrl || telegramUrl ? (
+          <div className="flex w-full min-w-0 flex-row flex-nowrap items-center text-gray-500">
+            {gig.ticketsUrl ? (
+              <a
+                href={gig.ticketsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex min-w-0 flex-row gap-2 items-center transition-colors hover:text-gray-700 dark:hover:text-violet-400"
+                title="Open tickets"
+              >
+                <Ticket className="h-4 w-4 shrink-0" aria-hidden />
+                <span className="min-w-0 truncate">Tickets</span>
+              </a>
+            ) : null}
+
+            {gig.ticketsUrl && telegramUrl ? (
+              <span className="mx-3 h-4 w-px bg-gray-300 dark:bg-gray-600" aria-hidden />
+            ) : null}
+
+            {telegramUrl ? (
+              <a
+                href={telegramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex min-w-0 flex-row gap-2 items-center transition-colors hover:text-gray-700 dark:hover:text-violet-400"
+                title="Find company"
+                aria-label="Find company"
+              >
+                <FaTelegramPlane className="h-4 w-4 shrink-0" aria-hidden />
+                <span className="min-w-0 truncate">Find company</span>
+              </a>
+            ) : null}
+          </div>
         ) : null}
       </div>
     </div>
