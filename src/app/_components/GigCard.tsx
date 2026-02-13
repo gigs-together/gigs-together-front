@@ -28,7 +28,7 @@ export function GigCard({ gig }: GigCardProps) {
   const mapsHref = location
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`
     : undefined;
-  const telegramUrl = process.env.NEXT_PUBLIC_TELEGRAM_URL;
+  const telegramUrl = gig.postUrl ?? process.env.NEXT_PUBLIC_TELEGRAM_URL;
 
   return (
     <div className="flex w-full flex-col bg-white rounded-lg dark:bg-gray-800 dark:border-gray-700">

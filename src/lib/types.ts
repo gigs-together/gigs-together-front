@@ -21,6 +21,7 @@ export type Event = {
   };
   ticketsUrl?: string;
   calendarUrl?: string;
+  postUrl?: string;
 };
 
 export interface V1GigGetResponseBody {
@@ -37,6 +38,7 @@ export interface V1GigGetResponseBodyGig {
   ticketsUrl: string;
   posterUrl?: string;
   calendarUrl?: string;
+  postUrl?: string;
 }
 
 export type Language = 'en' | 'ru' | 'es' | string;

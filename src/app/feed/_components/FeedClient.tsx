@@ -168,6 +168,7 @@ export default function FeedClient({ country, city }: FeedClientProps) {
             },
             ticketsUrl: gig.ticketsUrl,
             calendarUrl: gig.calendarUrl,
+            postUrl: gig.postUrl,
           };
         });
 
