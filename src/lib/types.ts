@@ -11,6 +11,7 @@ declare global {
 export type Event = {
   id: string;
   date: string;
+  endDate?: string;
   poster?: string;
   title: string;
   venue: string;
@@ -32,6 +33,7 @@ export interface V1GigGetResponseBodyGig {
   id: string;
   title: string;
   date: string;
+  endDate?: string;
   city: string;
   country: string;
   venue: string;

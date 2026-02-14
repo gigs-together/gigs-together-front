@@ -152,12 +152,14 @@ export default function FeedClient({ country, city }: FeedClientProps) {
 
         const res = await apiRequest<V1GigGetResponseBody>(`v1/gig?${qs.toString()}`, 'GET');
 
-        const mapped = res.gigs.map((gig) => {
+        const mapped = res.gigs.map((gig): Event => {
           const date = gigDateToYMD(gig.date);
+          const endDate = gig.endDate ? gigDateToYMD(gig.date) : undefined;
 
           return {
             id: gig.id,
             date,
+            endDate,
             poster: gig.posterUrl,
             title: gig.title,
             venue: gig.venue,
