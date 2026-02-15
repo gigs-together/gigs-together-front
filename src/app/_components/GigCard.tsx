@@ -26,20 +26,48 @@ const formatGigDate = (dateString?: string) => {
 interface GigDateProps {
   date: string;
   endDate?: string;
+  calendarUrl?: string;
 }
 
-function GigDate(props: GigDateProps) {
-  const dates = [
+function GigDates(props: GigDateProps) {
+  const datesStr = [
     formatGigDate(props.date),
     props.endDate ? formatGigDate(props.endDate) : undefined,
   ]
     .filter(Boolean)
     .join(' - ');
-  return (
+
+  const title = [datesStr, props.calendarUrl ? 'Add to Google Calendar' : undefined]
+    .filter(Boolean)
+    .join('\n');
+
+  const dates = (
     <>
       <Calendar className="h-4 w-4 shrink-0" aria-hidden />
-      <span className="min-w-0 flex-1 truncate">{dates}</span>
+      <span className="min-w-0 flex-1 truncate" title={title}>
+        {datesStr}
+      </span>
     </>
+  );
+
+  if (props.calendarUrl) {
+    return (
+      <a
+        href={props.calendarUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex w-full min-w-0 flex-row gap-2 items-center text-gray-500 transition-colors hover:text-gray-700 dark:hover:text-violet-400"
+        aria-label="Add to Google Calendar"
+      >
+        {dates}
+      </a>
+    );
+  }
+
+  return (
+    <div className="flex w-full min-w-0 flex-row gap-2 items-center text-gray-500" title="Date">
+      {dates}
+    </div>
   );
 }
 
@@ -81,25 +109,7 @@ export function GigCard({ gig }: GigCardProps) {
             >
               {gig.title}
             </a>
-            {gig.calendarUrl ? (
-              <a
-                href={gig.calendarUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex w-full min-w-0 flex-row gap-2 items-center text-gray-500 transition-colors hover:text-gray-700 dark:hover:text-violet-400"
-                title="Add to Google Calendar"
-                aria-label="Add to Google Calendar"
-              >
-                <GigDate date={gig.date} endDate={gig.endDate} />
-              </a>
-            ) : (
-              <div
-                className="flex w-full min-w-0 flex-row gap-2 items-center text-gray-500"
-                title="Date"
-              >
-                <GigDate date={gig.date} endDate={gig.endDate} />
-              </div>
-            )}
+            <GigDates date={gig.date} endDate={gig.endDate} calendarUrl={gig.calendarUrl} />
             <div
               className="flex w-full min-w-0 flex-row gap-2 items-center text-gray-500"
               title="Venue"

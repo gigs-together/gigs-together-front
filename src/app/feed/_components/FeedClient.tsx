@@ -154,7 +154,7 @@ export default function FeedClient({ country, city }: FeedClientProps) {
 
         const mapped = res.gigs.map((gig): Event => {
           const date = gigDateToYMD(gig.date);
-          const endDate = gig.endDate ? gigDateToYMD(gig.date) : undefined;
+          const endDate = gig.endDate ? gigDateToYMD(gig.endDate) : undefined;
 
           return {
             id: gig.id,
