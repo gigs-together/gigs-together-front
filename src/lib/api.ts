@@ -1,12 +1,12 @@
 type HttpMethod = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_APP_API_BASE_URL;
 
 function buildUrl(endpointOrUrl: string): string {
   // If caller already passed an absolute URL, use it as-is.
   if (/^https?:\/\//i.test(endpointOrUrl)) return endpointOrUrl;
   if (!API_BASE_URL) {
-    throw new Error('Missing NEXT_PUBLIC_API_BASE_URL for direct API calls');
+    throw new Error('Missing NEXT_PUBLIC_APP_API_BASE_URL for direct API calls');
   }
   return `${API_BASE_URL.replace(/\/$/, '')}/${endpointOrUrl.replace(/^\//, '')}`;
 }

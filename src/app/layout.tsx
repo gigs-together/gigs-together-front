@@ -4,7 +4,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import type { ReactNode } from 'react';
 
-const siteBaseUrl = process.env.NEXT_PUBLIC_SITE_BASE_URL;
+const siteBaseUrl = process.env.NEXT_PUBLIC_APP_BASE_URL;
 
 const geistSans = localFont({
   src: '../../public/fonts/GeistVF.woff',
