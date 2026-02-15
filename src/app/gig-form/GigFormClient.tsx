@@ -31,6 +31,9 @@ const formSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'Date must be in YYYY-MM-DD format.',
   }),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
+    message: 'End Date must be in YYYY-MM-DD format.',
+  }),
   city: z.string().min(1, { message: 'City is required.' }),
   country: z.string().min(1, { message: 'Country is required.' }), // ISO code
   venue: z.string().min(2, { message: 'Please enter venue.' }),
@@ -41,16 +44,17 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-type GigLookupResponse = {
+interface GigLookupResponse {
   title?: string;
   date?: string;
+  endDate?: string;
   city?: string;
   country?: string;
   venue?: string;
   ticketsUrl?: string;
   // sometimes APIs wrap payloads ?
   gig?: GigLookupResponse;
-};
+}
 
 function dateToYMD(date?: string): string | undefined {
   if (!date) return undefined;
@@ -83,6 +87,7 @@ export default function GigFormClient({ countries }: GigFormClientProps) {
     defaultValues: {
       title: '',
       date: '',
+      endDate: '',
       city: 'Barcelona',
       country: 'ES',
       venue: '',
@@ -106,6 +111,7 @@ export default function GigFormClient({ countries }: GigFormClientProps) {
       const gig = {
         title: values.title,
         date: values.date,
+        endDate: values.endDate,
         city: values.city,
         country: values.country,
         venue: values.venue,
@@ -155,6 +161,7 @@ export default function GigFormClient({ countries }: GigFormClientProps) {
       form.reset({
         title: '',
         date: '',
+        endDate: '',
         city: currentCity,
         country: currentCountry,
         venue: '',
@@ -194,6 +201,8 @@ export default function GigFormClient({ countries }: GigFormClientProps) {
       if (data.title) form.setValue('title', data.title, { shouldDirty: true });
       const ymd = dateToYMD(data.date);
       if (ymd) form.setValue('date', ymd, { shouldDirty: true });
+      const ymd2 = dateToYMD(data.endDate);
+      if (ymd2) form.setValue('endDate', ymd2, { shouldDirty: true });
 
       if (data.city) form.setValue('city', data.city, { shouldDirty: true });
       if (data.country) form.setValue('country', data.country.toUpperCase(), { shouldDirty: true });
@@ -311,6 +320,19 @@ export default function GigFormClient({ countries }: GigFormClientProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Date:</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} value={field.value ?? ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="endDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>End Date: (optional)</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} value={field.value ?? ''} />
                     </FormControl>
