@@ -2,6 +2,9 @@ import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import type { ReactNode } from 'react';
+
+const siteBaseUrl = process.env.NEXT_PUBLIC_SITE_BASE_URL;
 
 const geistSans = localFont({
   src: '../../public/fonts/GeistVF.woff',
@@ -14,17 +17,48 @@ const geistMono = localFont({
   weight: '100 900',
 });
 
+const description = 'Find gigs and company in your city.';
+
 export const metadata: Metadata = {
-  title: 'Gigs Together!',
-  description: "Let's go",
+  metadataBase: siteBaseUrl ? new URL(siteBaseUrl) : undefined,
+  title: {
+    default: 'Gigs Together!',
+    template: '%s | Gigs Together!',
+  },
+  description,
+  alternates: {
+    canonical: '/',
+  },
   icons: {
     icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }],
   },
+  openGraph: {
+    type: 'website',
+    title: 'Gigs Together!',
+    description,
+    url: siteBaseUrl ?? undefined,
+    images: [
+      {
+        url: '/preview-tg.jpg',
+        alt: 'Gigs Together preview',
+      },
+      {
+        url: '/preview.jpg',
+        alt: 'Gigs Together preview (square)',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Gigs Together!',
+    description,
+    images: ['/preview-tg.jpg'],
+  },
 };
 
-export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html>
+    <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         {children}
         <Toaster />
