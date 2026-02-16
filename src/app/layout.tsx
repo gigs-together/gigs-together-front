@@ -19,11 +19,14 @@ const geistMono = localFont({
 
 const description = 'Find gigs and company in your city.';
 
+const TITLE = 'Gigs Together!';
+const PREVIEW_IMAGE = '/logo-640x360.png';
+
 export const metadata: Metadata = {
   metadataBase: siteBaseUrl ? new URL(siteBaseUrl) : undefined,
   title: {
-    default: 'Gigs Together!',
-    template: '%s | Gigs Together!',
+    default: TITLE,
+    template: `%s | ${TITLE}`,
   },
   description,
   alternates: {
@@ -34,25 +37,21 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: 'website',
-    title: 'Gigs Together!',
+    title: TITLE,
     description,
     url: siteBaseUrl ?? undefined,
     images: [
       {
-        url: '/preview-tg.jpg',
-        alt: 'Gigs Together preview',
-      },
-      {
-        url: '/preview.jpg',
-        alt: 'Gigs Together preview (square)',
+        url: PREVIEW_IMAGE,
+        alt: TITLE,
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Gigs Together!',
+    title: TITLE,
     description,
-    images: ['/preview-tg.jpg'],
+    images: [PREVIEW_IMAGE],
   },
 };
 
