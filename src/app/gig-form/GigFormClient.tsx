@@ -31,9 +31,15 @@ const formSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'Date must be in YYYY-MM-DD format.',
   }),
-  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
-    message: 'End Date must be in YYYY-MM-DD format.',
-  }),
+  endDate: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+    z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, {
+        message: 'End Date must be in YYYY-MM-DD format.',
+      })
+      .optional(),
+  ),
   city: z.string().min(1, { message: 'City is required.' }),
   country: z.string().min(1, { message: 'Country is required.' }), // ISO code
   venue: z.string().min(2, { message: 'Please enter venue.' }),
