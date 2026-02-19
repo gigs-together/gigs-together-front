@@ -37,6 +37,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: 'website',
+    siteName: 'GigsTogether', // 👈 добавь
     title: TITLE,
     description,
     url: siteBaseUrl ?? undefined,
