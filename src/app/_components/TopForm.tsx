@@ -1,3 +1,5 @@
+'use client';
+
 import type { MouseEvent } from 'react';
 import React, { useMemo, useState } from 'react';
 import { cn, toLocalYMD } from '@/lib/utils';
@@ -49,13 +51,11 @@ const TopForm = ({ visibleEventDate, onDayClick, availableDates }: TopFormProps)
           if (nextOpen) setMonth(monthFromVisibleDate ?? new Date());
         }}
       >
-        <PopoverTrigger asChild>
-          <button className="flex items-center gap-2 focus:outline-none">
-            <span className="inline-flex items-center justify-center gap-2 text-base font-normal text-gray-800 px-2">
-              <FaRegCalendar className="text-gray-600" />
-              {formatDisplayMonth(visibleEventDate)}
-            </span>
-          </button>
+        <PopoverTrigger type="button" className="flex items-center gap-2 focus:outline-none">
+          <span className="inline-flex items-center justify-center gap-2 text-base font-normal text-gray-800 px-2">
+            <FaRegCalendar className="text-gray-600" />
+            {formatDisplayMonth(visibleEventDate)}
+          </span>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="center">
           <Calendar
