@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "lint:format:fix": "npm run lint:fix && npm run format:write",
+    "lint:fix": "eslint --fix .",
+    "lint": "eslint .",
+    "format:write": "prettier --write .",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
-    "lint:fix": "prettier --write . && eslint . --fix",
     "prepare": "husky"
   },
   "dependencies": {
