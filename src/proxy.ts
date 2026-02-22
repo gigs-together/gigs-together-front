@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 const DEFAULT_FEED_PATH = '/feed/es/barcelona';
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { nextUrl } = request;
   const { pathname, search } = nextUrl;
 
