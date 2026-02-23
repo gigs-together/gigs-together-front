@@ -25,7 +25,7 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
 
   {
-    files: ['**/*.{js,jsx,ts,tsx}'],
+    files: ['*.{js,jsx,ts,tsx}', 'src/**/*.{js,jsx,ts,tsx}'],
     languageOptions: {
       ecmaVersion: 'latest',
       globals: { ...globals.browser, Telegram: 'readonly' },
