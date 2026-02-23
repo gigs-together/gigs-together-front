@@ -240,7 +240,7 @@ export default function GigFormClient({ countries }: GigFormClientProps) {
           // Optionally, initialize any features that depend on the script here.
         }}
       />
-      <Card className="w-full max-w-md m-auto">
+      <Card className="w-full max-w-md m-auto border-0">
         <CardHeader>
           <CardTitle>Suggest a gig</CardTitle>
           <CardDescription>
