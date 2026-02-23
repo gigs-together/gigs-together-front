@@ -434,7 +434,7 @@ export default function GigFormClient({ countries }: GigFormClientProps) {
                     : 'Paste a direct image URL.'}
                 </FormDescription>
               </FormItem>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting} style={{ width: '100%' }}>
                 {isSubmitting ? 'Submitting...' : 'Suggest'}
               </Button>
             </form>
