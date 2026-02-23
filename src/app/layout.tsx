@@ -3,6 +3,8 @@ import localFont from 'next/font/local';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import type { ReactNode } from 'react';
+import { HeaderConfigProvider } from '@/app/_components/HeaderConfigProvider';
+import AppHeader from '@/app/_components/AppHeader';
 
 const siteBaseUrl = process.env.NEXT_PUBLIC_APP_BASE_URL;
 
@@ -60,8 +62,11 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {children}
-        <Toaster />
+        <HeaderConfigProvider>
+          <AppHeader />
+          <div className="pt-[45px]">{children}</div>
+          <Toaster />
+        </HeaderConfigProvider>
       </body>
     </html>
   );

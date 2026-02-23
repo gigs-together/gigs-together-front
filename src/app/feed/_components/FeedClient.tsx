@@ -2,7 +2,6 @@
 
 import { Fragment, useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import styles from '@/app/page.module.css';
-import Header from '@/app/_components/Header';
 import { toLocalYMD } from '@/lib/utils';
 
 import '@/app/style.css';
@@ -11,6 +10,7 @@ import { GigCard } from '@/app/_components/GigCard';
 import type { Event, V1GigGetResponseBody, V1GigGetResponseBodyGig } from '@/lib/types';
 import { apiRequest } from '@/lib/api';
 import { useT } from '@/lib/i18n/I18nProvider';
+import { useHeaderConfig } from '@/app/_components/HeaderConfigProvider';
 
 type FeedClientProps = {
   country: string; // ISO like "es"
@@ -87,6 +87,7 @@ const toMs = (n: number) => (n < 1_000_000_000_000 ? n * 1000 : n); // seconds -
 
 export default function FeedClient({ country, city }: FeedClientProps) {
   const t = useT();
+  const { setConfig: setHeaderConfig } = useHeaderConfig();
   const headerH = useHeaderHeight(); // will pick [data-app-header], fallback 44
 
   const [events, setEvents] = useState<Event[]>([]);
@@ -352,10 +353,48 @@ export default function FeedClient({ country, city }: FeedClientProps) {
     }
   }, []);
 
+  const handleDayClick = useCallback(
+    (day: Date) => {
+      const key = toLocalYMD(day);
+
+      // First, try to find an explicit anchor by date (where you added data-date and scroll-mt-[44px])
+      let target = document.querySelector<HTMLElement>(`[data-date="${key}"]`);
+
+      // Fallback: if there is no anchor, jump to the first card for this date
+      if (!target) {
+        const firstEvent = events.find((e) => e.date === key);
+        if (firstEvent) {
+          target = eventRefs.current.get(String(firstEvent.id)) || null;
+        }
+      }
+
+      if (!target) return;
+
+      // `scrollIntoView` can overshoot in our layout; compute the scroll position manually.
+      const headerPx = headerOffsetHeightRef.current ?? 0;
+      // Tune this if needed: positive value means "stop a bit earlier" (less scroll down).
+      const EXTRA_OFFSET_PX = 32;
+      const top = window.scrollY + target.getBoundingClientRect().top - headerPx - EXTRA_OFFSET_PX;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    },
+    [events],
+  );
+
+  useEffect(() => {
+    setHeaderConfig({
+      earliestEventDate: visibleEventDate,
+      availableDates,
+      onDayClick: handleDayClick,
+    });
+
+    return () => {
+      setHeaderConfig({});
+    };
+  }, [availableDates, handleDayClick, setHeaderConfig, visibleEventDate]);
+
   if (loading) {
     return (
-      <div className={styles.page}>
-        <Header city={city} country={country} />
+      <div className="min-h-[100svh]">
         <main className={styles.main}>
           <div className="flex justify-center items-center h-96">
             <div className="text-lg">Loading events...</div>
@@ -367,8 +406,7 @@ export default function FeedClient({ country, city }: FeedClientProps) {
 
   if (error) {
     return (
-      <div className={styles.page}>
-        <Header city={city} country={country} />
+      <div className="min-h-[100svh]">
         <main className={styles.main}>
           <div className="flex justify-center items-center h-96">
             <div className="text-lg text-red-600">Error: {error}</div>
@@ -378,39 +416,8 @@ export default function FeedClient({ country, city }: FeedClientProps) {
     );
   }
 
-  const handleDayClick = (day: Date) => {
-    const key = toLocalYMD(day);
-
-    // First, try to find an explicit anchor by date (where you added data-date and scroll-mt-[44px])
-    let target = document.querySelector<HTMLElement>(`[data-date="${key}"]`);
-
-    // Fallback: if there is no anchor, jump to the first card for this date
-    if (!target) {
-      const firstEvent = events.find((e) => e.date === key);
-      if (firstEvent) {
-        target = eventRefs.current.get(String(firstEvent.id)) || null;
-      }
-    }
-
-    if (!target) return;
-
-    // `scrollIntoView` can overshoot in our layout; compute the scroll position manually.
-    const headerPx = headerOffsetHeightRef.current ?? 0;
-    // Tune this if needed: positive value means "stop a bit earlier" (less scroll down).
-    const EXTRA_OFFSET_PX = 32;
-    const top = window.scrollY + target.getBoundingClientRect().top - headerPx - EXTRA_OFFSET_PX;
-    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
-  };
-
   return (
-    <div className={styles.page}>
-      <Header
-        earliestEventDate={visibleEventDate}
-        onDayClick={handleDayClick}
-        availableDates={availableDates}
-        city={city}
-        country={country}
-      />
+    <div className="min-h-[100svh]">
       <main
         className={styles.main}
         ref={(el) => {
