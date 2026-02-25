@@ -22,7 +22,7 @@ const geistMono = localFont({
 const description = 'Find gigs and company in your city.';
 
 const TITLE = 'Gigs Together!';
-const PREVIEW_IMAGE = '/logo-640x360.png';
+const PREVIEW_IMAGE = '/logo-1920x1080.png';
 
 export const metadata: Metadata = {
   metadataBase: siteBaseUrl ? new URL(siteBaseUrl) : undefined,
