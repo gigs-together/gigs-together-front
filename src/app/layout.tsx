@@ -19,18 +19,22 @@ const geistMono = localFont({
   weight: '100 900',
 });
 
-const description = 'Find gigs and company in your city.';
-
 const TITLE = 'Gigs Together!';
-const PREVIEW_IMAGE = '/logo-1920x1080.png';
+const DESCRIPTION = 'Find gigs and company in your city.';
+const WIDTH = 1200;
+const HEIGHT = 630;
+const PREVIEW_IMAGE = `/logo-${WIDTH}x${HEIGHT}.png`;
+
+const metadataBase = siteBaseUrl ? new URL(siteBaseUrl) : undefined;
+const previewImage = new URL(PREVIEW_IMAGE, metadataBase).toString();
 
 export const metadata: Metadata = {
-  metadataBase: siteBaseUrl ? new URL(siteBaseUrl) : undefined,
+  metadataBase,
   title: {
     default: TITLE,
     template: `%s | ${TITLE}`,
   },
-  description,
+  description: DESCRIPTION,
   alternates: {
     canonical: '/',
   },
@@ -39,13 +43,15 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: 'website',
-    siteName: 'GigsTogether', // 👈 добавь
+    siteName: 'GigsTogether',
     title: TITLE,
-    description,
+    description: DESCRIPTION,
     url: siteBaseUrl ?? undefined,
     images: [
       {
-        url: PREVIEW_IMAGE,
+        url: previewImage,
+        width: WIDTH,
+        height: HEIGHT,
         alt: TITLE,
       },
     ],
@@ -53,8 +59,8 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: TITLE,
-    description,
-    images: [PREVIEW_IMAGE],
+    description: DESCRIPTION,
+    images: [previewImage],
   },
 };
 
