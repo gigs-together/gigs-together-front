@@ -424,7 +424,7 @@ export default function FeedClient({ country, city }: FeedClientProps) {
           if (el) scrollContainerRef.current = el;
         }}
       >
-        <div className="px-8 md:px-16 py-8">
+        <div className="px-8 md:px-8 py-8">
           {events.length === 0 ? (
             <div className="text-center py-12">
               <h2 className="text-xl text-gray-600">No events found</h2>
