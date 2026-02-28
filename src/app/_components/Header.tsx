@@ -12,15 +12,25 @@ interface HeaderProps {
   earliestEventDate?: string;
   onDayClick?: (day: Date) => void;
   availableDates?: string[]; // formatted as YYYY-MM-DD
+  showCalendar?: boolean;
+  showSuggestGig?: boolean;
   country: string;
   city: string;
 }
 
 export default function Header(props: HeaderProps) {
-  const { earliestEventDate, onDayClick, availableDates, country, city } = props;
+  const {
+    earliestEventDate,
+    onDayClick,
+    availableDates,
+    showCalendar = true,
+    showSuggestGig = true,
+    country,
+    city,
+  } = props;
   const telegramUrl = process.env.NEXT_PUBLIC_TELEGRAM_URL;
   const githubUrl = process.env.NEXT_PUBLIC_GITHUB_URL;
-  const suggestGigUrl = process.env.NEXT_PUBLIC_SUGGEST_GIG_LINK;
+  const suggestGigUrl = showSuggestGig ? process.env.NEXT_PUBLIC_SUGGEST_GIG_LINK : undefined;
   const locationLabel = city ? normalizeLocationTitle(city) : country.toUpperCase();
   const homeHref = (city ? `/feed/${country}/${city}` : `/feed/${country}`) as Route;
 
@@ -44,11 +54,13 @@ export default function Header(props: HeaderProps) {
             </h1>
           </div>
           <div className="min-w-0 justify-self-center">
-            <TopForm
-              visibleEventDate={earliestEventDate}
-              onDayClick={onDayClick}
-              availableDates={availableDates}
-            />
+            {showCalendar ? (
+              <TopForm
+                visibleEventDate={earliestEventDate}
+                onDayClick={onDayClick}
+                availableDates={availableDates}
+              />
+            ) : null}
           </div>
           <HeaderActions
             locationLabel={locationLabel}
