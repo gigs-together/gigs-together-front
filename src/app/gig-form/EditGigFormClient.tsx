@@ -214,6 +214,9 @@ export default function EditGigFormClient({ countries, gigPublicId }: EditGigFor
       }
       const data = await lookupGig({ name, location });
 
+      if (!data.date) {
+        throw new Error('AI lookup did not return a date');
+      }
       const ymd = dateToYMD(data.date);
       if (!ymd) {
         throw new Error('Invalid API response: "gig.date" must be YYYY-MM-DD (or ISO)');
@@ -223,13 +226,17 @@ export default function EditGigFormClient({ countries, gigPublicId }: EditGigFor
         throw new Error('Invalid API response: "gig.endDate" must be YYYY-MM-DD (or ISO)');
       }
 
-      form.setValue('title', data.title, { shouldDirty: true });
+      if (data.title) form.setValue('title', data.title, { shouldDirty: true });
       form.setValue('date', ymd, { shouldDirty: true });
-      form.setValue('endDate', ymd2 ?? '', { shouldDirty: true });
-      form.setValue('city', data.city, { shouldDirty: true });
-      form.setValue('country', data.country.toUpperCase(), { shouldDirty: true });
-      form.setValue('venue', data.venue, { shouldDirty: true });
-      form.setValue('ticketsUrl', data.ticketsUrl, { shouldDirty: true });
+      if (data.endDate) form.setValue('endDate', ymd2 ?? '', { shouldDirty: true });
+      if (data.city) form.setValue('city', data.city, { shouldDirty: true });
+      if (data.country) {
+        form.setValue('country', data.country.toUpperCase(), { shouldDirty: true });
+      }
+      if (data.venue) form.setValue('venue', data.venue, { shouldDirty: true });
+      if (data.ticketsUrl) {
+        form.setValue('ticketsUrl', data.ticketsUrl, { shouldDirty: true });
+      }
 
       toast({ title: 'Filled from AI', description: 'Fields were updated from lookup results.' });
     } catch (e) {

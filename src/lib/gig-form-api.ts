@@ -18,8 +18,7 @@ export interface GigUpsertPayload {
   ticketsUrl: string;
 }
 
-export interface GigForEditData {
-  publicId: string;
+export interface GigDraftData {
   title: string;
   date: string;
   endDate?: string;
@@ -30,19 +29,34 @@ export interface GigForEditData {
   posterUrl?: string;
 }
 
+export interface GigForEditData extends GigDraftData {
+  publicId: string;
+}
+
 export interface GigLookupData {
-  title: string;
-  date: string;
+  title?: string;
+  date?: string;
   endDate?: string;
-  city: string;
-  country: string;
-  venue: string;
-  ticketsUrl: string;
+  city?: string;
+  country?: string;
+  venue?: string;
+  ticketsUrl?: string;
   posterUrl?: string;
+}
+
+export interface UpdateGigResponse {
+  publicId: string;
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return !!v && typeof v === 'object' && !Array.isArray(v);
+}
+
+function asRecordOrThrow(raw: unknown): Record<string, unknown> {
+  if (!isRecord(raw)) {
+    throw new Error('Invalid API response: expected an object');
+  }
+  return raw;
 }
 
 function requireString(obj: Record<string, unknown>, key: string): string {
@@ -62,90 +76,100 @@ function optionalString(obj: Record<string, unknown>, key: string): string | und
   return v;
 }
 
-function parseGigLookupData(raw: unknown): GigLookupData {
-  if (!isRecord(raw)) {
-    throw new Error('Invalid API response: expected an object');
+function optionalNonEmptyString(obj: Record<string, unknown>, key: string): string | undefined {
+  const v = obj[key];
+  if (v === undefined || v === null) return undefined;
+  if (typeof v !== 'string') {
+    throw new Error(`Invalid API response: "${key}" must be a string when present`);
   }
+  const trimmed = v.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function parseGigDraftData(raw: unknown): GigDraftData {
+  const obj = asRecordOrThrow(raw);
   return {
-    title: requireString(raw, 'title'),
-    date: requireString(raw, 'date'),
-    endDate: optionalString(raw, 'endDate'),
-    city: requireString(raw, 'city'),
-    country: requireString(raw, 'country'),
-    venue: requireString(raw, 'venue'),
-    ticketsUrl: requireString(raw, 'ticketsUrl'),
-    posterUrl: optionalString(raw, 'posterUrl'),
+    title: requireString(obj, 'title'),
+    date: requireString(obj, 'date'),
+    endDate: optionalString(obj, 'endDate'),
+    city: requireString(obj, 'city'),
+    country: requireString(obj, 'country'),
+    venue: requireString(obj, 'venue'),
+    ticketsUrl: requireString(obj, 'ticketsUrl'),
+    posterUrl: optionalString(obj, 'posterUrl'),
   };
 }
 
 function parseGigForEditData(raw: unknown): GigForEditData {
-  if (!isRecord(raw)) {
-    throw new Error('Invalid API response: expected an object');
-  }
+  const obj = asRecordOrThrow(raw);
+  const draft = parseGigDraftData(obj);
   return {
-    publicId: requireString(raw, 'publicId'),
-    title: requireString(raw, 'title'),
-    date: requireString(raw, 'date'),
-    endDate: optionalString(raw, 'endDate'),
-    city: requireString(raw, 'city'),
-    country: requireString(raw, 'country'),
-    venue: requireString(raw, 'venue'),
-    ticketsUrl: requireString(raw, 'ticketsUrl'),
-    posterUrl: optionalString(raw, 'posterUrl'),
+    publicId: requireString(obj, 'publicId'),
+    ...draft,
   };
 }
 
-function maybePosterUrl(poster: PosterSelection): string | undefined {
+function parseGigLookupData(raw: unknown): GigLookupData {
+  const obj = asRecordOrThrow(raw);
+  return {
+    title: optionalNonEmptyString(obj, 'title'),
+    date: optionalNonEmptyString(obj, 'date'),
+    endDate: optionalNonEmptyString(obj, 'endDate'),
+    city: optionalNonEmptyString(obj, 'city'),
+    country: optionalNonEmptyString(obj, 'country'),
+    venue: optionalNonEmptyString(obj, 'venue'),
+    ticketsUrl: optionalNonEmptyString(obj, 'ticketsUrl'),
+    posterUrl: optionalNonEmptyString(obj, 'posterUrl'),
+  };
+}
+
+function getPosterUrlOrUndefined(poster: PosterSelection): string | undefined {
   if (poster.mode !== 'url') return undefined;
   const trimmed = (poster.url ?? '').trim();
   if (!trimmed) return undefined;
-  // Validate URL format
+  // Validate URL format (throws on invalid URLs)
   new URL(trimmed);
   return trimmed;
 }
 
-function buildGigBody(values: GigUpsertPayload): GigUpsertPayload {
-  return {
-    title: values.title,
-    date: values.date,
-    endDate: values.endDate || undefined,
-    city: values.city,
-    country: values.country,
-    venue: values.venue,
-    ticketsUrl: values.ticketsUrl,
-  };
-}
+type SubmitGigMethod = 'POST' | 'PATCH';
 
-async function submitGig(params: {
+async function submitGig<TResponse = void>(params: {
   endpoint: string;
-  method: 'POST' | 'PATCH';
+  method: SubmitGigMethod;
   telegramInitDataString: string;
   gig: GigUpsertPayload;
   poster: PosterSelection;
-}): Promise<void> {
-  const gig = buildGigBody(params.gig);
+}): Promise<TResponse> {
+  const gig: GigUpsertPayload = {
+    title: params.gig.title,
+    date: params.gig.date,
+    endDate: params.gig.endDate || undefined,
+    city: params.gig.city,
+    country: params.gig.country,
+    venue: params.gig.venue,
+    ticketsUrl: params.gig.ticketsUrl,
+  };
 
-  const hasPosterUpload = params.poster.mode === 'upload' && !!params.poster.file;
-  const posterUrl = maybePosterUrl(params.poster);
+  const posterUrl = getPosterUrlOrUndefined(params.poster);
 
-  if (hasPosterUpload) {
+  if (params.poster.mode === 'upload' && params.poster.file) {
+    const posterFile = params.poster.file;
     const fd = new FormData();
-    fd.append('posterFile', params.poster.file as File);
+    fd.append('posterFile', posterFile);
     fd.append('gig', JSON.stringify(gig));
     fd.append('telegramInitDataString', params.telegramInitDataString);
-    await apiRequest<void, FormData>(params.endpoint, params.method, fd);
-    return;
+    return apiRequest<TResponse, FormData>(params.endpoint, params.method, fd);
   }
 
   if (posterUrl) {
-    await apiRequest(params.endpoint, params.method, {
+    return apiRequest<TResponse>(params.endpoint, params.method, {
       gig: { ...gig, posterUrl },
       telegramInitDataString: params.telegramInitDataString,
     });
-    return;
   }
 
-  await apiRequest(params.endpoint, params.method, {
+  return apiRequest<TResponse>(params.endpoint, params.method, {
     gig,
     telegramInitDataString: params.telegramInitDataString,
   });
@@ -181,7 +205,7 @@ export async function lookupGig(params: {
   if (!location) {
     throw new Error('Invalid lookup request: "location" is required');
   }
-  const raw = await apiRequest<unknown>(
+  const raw = await apiRequest<{ gig: unknown }>(
     'v1/gig/lookup',
     'POST',
     {
@@ -190,7 +214,7 @@ export async function lookupGig(params: {
     },
     { signal: params.signal },
   );
-  return parseGigLookupData(raw);
+  return parseGigLookupData(raw?.gig);
 }
 
 export async function createGig(params: {
@@ -198,7 +222,7 @@ export async function createGig(params: {
   gig: GigUpsertPayload;
   poster: PosterSelection;
 }): Promise<void> {
-  return submitGig({
+  await submitGig<void>({
     endpoint: 'v1/receiver/gig',
     method: 'POST',
     telegramInitDataString: params.telegramInitDataString,
@@ -212,8 +236,8 @@ export async function updateGig(params: {
   telegramInitDataString: string;
   gig: GigUpsertPayload;
   poster: PosterSelection;
-}): Promise<void> {
-  return submitGig({
+}): Promise<UpdateGigResponse> {
+  return submitGig<UpdateGigResponse>({
     endpoint: `v1/receiver/gig/${encodeURIComponent(params.publicId)}`,
     method: 'PATCH',
     telegramInitDataString: params.telegramInitDataString,
