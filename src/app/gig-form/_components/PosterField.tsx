@@ -1,11 +1,12 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { RefObject } from 'react';
 import { FormControl, FormDescription, FormItem } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { GigPoster } from '@/app/_components/GigPoster';
 
 type PosterMode = 'upload' | 'url';
 
@@ -38,6 +39,17 @@ export default function PosterField(props: PosterFieldProps) {
 
   const isEdit = variant === 'edit';
 
+  const localPreviewUrl = useMemo(() => {
+    if (!posterFile) return null;
+    return URL.createObjectURL(posterFile);
+  }, [posterFile]);
+
+  useEffect(() => {
+    return () => {
+      if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
+    };
+  }, [localPreviewUrl]);
+
   const description = useMemo(() => {
     if (!isEdit) {
       return mode === 'upload' ? 'Upload an image file (max 10MB).' : 'Paste a direct image URL.';
@@ -46,6 +58,15 @@ export default function PosterField(props: PosterFieldProps) {
       ? 'Upload a new image file to replace the poster (optional).'
       : 'Paste a new direct image URL to replace the poster (optional).';
   }, [isEdit, mode]);
+
+  const previewSrc =
+    mode === 'upload'
+      ? localPreviewUrl
+      : posterUrl?.trim()
+        ? posterUrl.trim()
+        : isEdit
+          ? existingPosterUrl
+          : undefined;
 
   return (
     <FormItem>
@@ -105,6 +126,12 @@ export default function PosterField(props: PosterFieldProps) {
           />
         )}
       </FormControl>
+
+      {previewSrc ? (
+        <div className="mt-2">
+          <GigPoster poster={previewSrc} title="Poster preview" />
+        </div>
+      ) : null}
 
       <FormDescription>
         {isEdit ? (
