@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-const DEFAULT_FEED_PATH = '/feed/es/barcelona';
+import { DEFAULT_FEED_PATH } from '@/lib/feed.routes';
 
 export function proxy(request: NextRequest) {
   const { nextUrl } = request;

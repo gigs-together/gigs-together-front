@@ -1,6 +1,7 @@
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { buildFeedPath, SUPPORTED_FEED_LOCATIONS } from '@/lib/feed.routes';
 
 export const runtime = 'nodejs';
 
@@ -53,7 +54,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Invalid body' }, { status: 400 });
   }
 
-  const paths = (body as RevalidateFeedRequestBody | undefined)?.paths ?? ['/feed/es/barcelona'];
+  const paths =
+    (body as RevalidateFeedRequestBody | undefined)?.paths ??
+    SUPPORTED_FEED_LOCATIONS.map(buildFeedPath);
   for (const path of paths) {
     revalidatePath(path);
   }

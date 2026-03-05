@@ -7,6 +7,7 @@ import type { V1TranslationsByNamespace } from '@/lib/translations.server';
 import { FEED_PAGE_SIZE } from '@/lib/feed.constants';
 import type { Event } from '@/lib/types';
 import { gigToEvent } from '@/lib/feed.mapper';
+import { DEFAULT_FEED_ROUTE, SUPPORTED_FEED_LOCATIONS } from '@/lib/feed.routes';
 
 const PAGE_SIZE = FEED_PAGE_SIZE;
 
@@ -14,8 +15,7 @@ export const dynamicParams = false;
 export const revalidate = 60;
 
 export async function generateStaticParams() {
-  // Currently, we only support one location.
-  return [{ country: 'es', city: 'barcelona' }];
+  return SUPPORTED_FEED_LOCATIONS.map((x) => ({ country: x.country, city: x.city }));
 }
 
 const tFromTranslations = (translations: V1TranslationsByNamespace, ns: string) => {
@@ -30,7 +30,7 @@ export default async function Page(props: PageProps<'/feed/[country]/[city]'>) {
 
   // Currently, we only support one location.
   if (normalizedCountry !== 'es' || normalizedCity !== 'barcelona') {
-    redirect('/feed/es/barcelona');
+    redirect(DEFAULT_FEED_ROUTE);
   }
 
   const i18n = await getTranslations('en', 'country');
