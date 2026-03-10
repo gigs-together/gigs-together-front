@@ -15,6 +15,9 @@ import { useHeaderHeight } from './feed-client/useHeaderHeight';
 import { FEED_PAGE_SIZE } from '@/lib/feed.constants';
 import { gigToEvent } from '@/lib/feed.mapper';
 import { apiRequest } from '@/lib/api';
+import { useHashAutoScroll } from './feed-client/useHashAutoScroll';
+import { useInfiniteScroll } from './feed-client/useInfiniteScroll';
+import { useVisibleEventDateOnScroll } from './feed-client/useVisibleEventDateOnScroll';
 
 interface FeedClientProps {
   country: string; // ISO like "es"
@@ -31,24 +34,13 @@ export default function FeedClient(props: FeedClientProps) {
   const headerH = useHeaderHeight(); // will pick [data-app-header], fallback 44
 
   const [events, setEvents] = useState<Event[]>(() => initialEvents ?? []);
-  const [loading, setLoading] = useState(() => initialEvents === undefined);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const [isLoading, setIsLoading] = useState(() => initialEvents === undefined);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | undefined>(() => initialNextCursor);
 
   const eventRefs = useRef<Map<string, HTMLElement>>(new Map());
-  const loadMoreRef = useRef<HTMLDivElement | null>(null);
-  const hasUserScrolledRef = useRef(false);
   const inFlightRef = useRef(false);
-
-  const lastAutoScrolledHashRef = useRef<string | null>(null);
-  const autoHighlightTimeoutRef = useRef<number | undefined>(undefined);
-
-  const anchorsRef = useRef<HTMLElement[]>([]);
-  const pendingVisibleDateRef = useRef<string | undefined>(undefined);
-  const debounceTimeoutRef = useRef<number | undefined>(undefined);
-
-  const [visibleEventDate, setVisibleEventDate] = useState<string | undefined>();
 
   type FetchMode = 'replace' | 'append';
 
@@ -66,10 +58,10 @@ export default function FeedClient(props: FeedClientProps) {
 
       try {
         if (mode === 'replace') {
-          setLoading(true);
+          setIsLoading(true);
           setError(null);
         } else {
-          setLoadingMore(true);
+          setIsLoadingMore(true);
         }
 
         const res = await apiRequest<V1GigGetResponseBody>(`v1/gig?${qs.toString()}`, 'GET');
@@ -94,8 +86,8 @@ export default function FeedClient(props: FeedClientProps) {
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
-        setLoading(false);
-        setLoadingMore(false);
+        setIsLoading(false);
+        setIsLoadingMore(false);
         inFlightRef.current = false;
       }
     },
@@ -107,8 +99,8 @@ export default function FeedClient(props: FeedClientProps) {
       setEvents(initialEvents);
       setNextCursor(initialNextCursor);
       setError(null);
-      setLoading(false);
-      setLoadingMore(false);
+      setIsLoading(false);
+      setIsLoadingMore(false);
       inFlightRef.current = false;
       return;
     }
@@ -118,9 +110,9 @@ export default function FeedClient(props: FeedClientProps) {
 
   const hasMore = Boolean(nextCursor);
   const loadMore = useCallback(() => {
-    if (loading || loadingMore || !nextCursor) return;
+    if (isLoading || isLoadingMore || !nextCursor) return;
     void fetchPage('append', { cursor: nextCursor });
-  }, [fetchPage, loading, loadingMore, nextCursor]);
+  }, [fetchPage, isLoading, isLoadingMore, nextCursor]);
 
   const {
     availableDates: calendarAvailableDates,
@@ -129,136 +121,23 @@ export default function FeedClient(props: FeedClientProps) {
   } = useCalendarAvailableDates({
     country,
     city,
-    enabled: !loading && !error,
+    enabled: !isLoading && !error,
   });
 
-  const scheduleVisibleDateCommit = useCallback((next: string | undefined) => {
-    if (debounceTimeoutRef.current) window.clearTimeout(debounceTimeoutRef.current);
-    debounceTimeoutRef.current = window.setTimeout(() => {
-      setVisibleEventDate(next);
-    }, 150);
-  }, []);
+  const { visibleEventDate } = useVisibleEventDateOnScroll({
+    events,
+    headerOffsetPx: headerH ?? 0,
+  });
 
-  const computeActiveDate = useCallback(() => {
-    const headerPx = headerH ?? 0;
-    const anchors = anchorsRef.current;
-    if (!anchors || anchors.length === 0) return;
+  useHashAutoScroll({ events });
 
-    // Switch to the next anchor a bit *before* it touches the header.
-    const EARLY_SWITCH_PX = 40;
-
-    const withTop = anchors.map((el) => ({ el, top: el.getBoundingClientRect().top - headerPx }));
-    const firstBelow = withTop.filter((x) => x.top >= 0).sort((a, b) => a.top - b.top)[0];
-    const closestAbove = withTop.filter((x) => x.top < 0).sort((a, b) => b.top - a.top)[0];
-    const targetEl = (
-      firstBelow && firstBelow.top < EARLY_SWITCH_PX ? firstBelow : (closestAbove ?? firstBelow)
-    )?.el as HTMLElement | undefined;
-
-    const next = targetEl?.dataset.date;
-    if (pendingVisibleDateRef.current === next) return;
-    pendingVisibleDateRef.current = next;
-    scheduleVisibleDateCommit(next);
-  }, [headerH, scheduleVisibleDateCommit]);
-
-  useEffect(() => {
-    anchorsRef.current = Array.from(document.querySelectorAll('[data-date]')) as HTMLElement[];
-    requestAnimationFrame(() => computeActiveDate());
-  }, [events, computeActiveDate]);
-
-  useEffect(() => {
-    requestAnimationFrame(() => computeActiveDate());
-  }, [computeActiveDate, headerH]);
-
-  useEffect(() => {
-    let ticking = false;
-    let frameId: number | undefined;
-
-    const schedule = () => {
-      if (ticking) return;
-      ticking = true;
-      frameId = requestAnimationFrame(() => {
-        computeActiveDate();
-        ticking = false;
-      });
-    };
-
-    const onScroll = () => {
-      hasUserScrolledRef.current = true;
-      schedule();
-    };
-    const onResize = () => schedule();
-
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onResize);
-
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onResize);
-      if (frameId) cancelAnimationFrame(frameId);
-    };
-  }, [computeActiveDate]);
-
-  useEffect(() => {
-    return () => {
-      if (debounceTimeoutRef.current) window.clearTimeout(debounceTimeoutRef.current);
-    };
-  }, []);
-
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (!hash) {
-      lastAutoScrolledHashRef.current = null;
-      return;
-    }
-    if (lastAutoScrolledHashRef.current === hash) return;
-
-    const id = hash.startsWith('#') ? hash.slice(1) : hash;
-    if (!id) return;
-
-    const el = document.getElementById(id);
-    if (!el) return;
-
-    lastAutoScrolledHashRef.current = hash;
-    requestAnimationFrame(() => {
-      el.scrollIntoView({ block: 'start', inline: 'nearest' });
-      el.classList.remove('gig-anchor-auto');
-      // Force a reflow so the class removal is committed and the CSS animation
-      // reliably restarts when we add the class again.
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      el.offsetWidth;
-      el.classList.add('gig-anchor-auto');
-
-      if (autoHighlightTimeoutRef.current) {
-        window.clearTimeout(autoHighlightTimeoutRef.current);
-      }
-      autoHighlightTimeoutRef.current = window.setTimeout(() => {
-        el.classList.remove('gig-anchor-auto');
-      }, 1800);
-    });
-  }, [events]);
-
-  useEffect(() => {
-    const el = loadMoreRef.current;
-    if (!el) return;
-
-    const io = new IntersectionObserver(
-      (entries) => {
-        const hit = entries.some((e) => e.isIntersecting);
-        if (!hit) return;
-        if (!hasUserScrolledRef.current) return;
-        if (!hasMore || loading || loadingMore) return;
-        loadMore();
-      },
-      {
-        root: null,
-        rootMargin: '400px 0px',
-        threshold: 0,
-      },
-    );
-
-    io.observe(el);
-    return () => io.disconnect();
-  }, [hasMore, loadMore, loading, loadingMore]);
+  const { sentinelRef } = useInfiniteScroll({
+    isEnabled: true,
+    hasMore,
+    isLoading,
+    isLoadingMore,
+    onLoadMore: loadMore,
+  });
 
   const registerEventRef = useCallback((eventId: string, element: HTMLElement | null) => {
     if (element) {
@@ -304,7 +183,7 @@ export default function FeedClient(props: FeedClientProps) {
     onDayClick: handleDayClick,
   });
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-[100svh]">
         <main className={styles.main}>
@@ -334,8 +213,10 @@ export default function FeedClient(props: FeedClientProps) {
         <div className="px-8 md:px-8 py-8">
           <FeedMonths events={events} registerEventRef={registerEventRef} />
 
-          <div ref={loadMoreRef} className="h-12" aria-hidden />
-          {loadingMore ? <div className="py-4 text-center text-gray-500">Loading more…</div> : null}
+          <div ref={sentinelRef} className="h-12" aria-hidden />
+          {isLoadingMore ? (
+            <div className="py-4 text-center text-gray-500">Loading more…</div>
+          ) : null}
         </div>
       </main>
     </div>
