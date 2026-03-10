@@ -1,4 +1,4 @@
-import type { V1GigDatesGetResponseBody } from '@/lib/types';
+import type { V1GigAroundGetResponseBody, V1GigDatesGetResponseBody } from '@/lib/types';
 
 const DEFAULT_LOCALE = 'en-US';
 
@@ -17,4 +17,14 @@ export function isV1GigDatesGetResponseBody(value: unknown): value is V1GigDates
   const dates = value['dates'];
   if (!Array.isArray(dates)) return false;
   return dates.every((x) => typeof x === 'string' || typeof x === 'number');
+}
+
+export function isV1GigAroundGetResponseBody(value: unknown): value is V1GigAroundGetResponseBody {
+  if (!isRecord(value)) return false;
+  return (
+    Array.isArray(value['before']) &&
+    Array.isArray(value['after']) &&
+    (value['prevCursor'] === undefined || typeof value['prevCursor'] === 'string') &&
+    (value['nextCursor'] === undefined || typeof value['nextCursor'] === 'string')
+  );
 }

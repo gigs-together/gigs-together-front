@@ -18,6 +18,7 @@ import { apiRequest } from '@/lib/api';
 import { useHashAutoScroll } from './feed-client/useHashAutoScroll';
 import { useInfiniteScroll } from './feed-client/useInfiniteScroll';
 import { useVisibleEventDateOnScroll } from './feed-client/useVisibleEventDateOnScroll';
+import { isV1GigAroundGetResponseBody } from './feed-client/utils';
 
 interface FeedClientProps {
   country: string; // ISO like "es"
@@ -36,11 +37,13 @@ export default function FeedClient(props: FeedClientProps) {
   const [events, setEvents] = useState<Event[]>(() => initialEvents ?? []);
   const [isLoading, setIsLoading] = useState(() => initialEvents === undefined);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isJumpLoading, setIsJumpLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | undefined>(() => initialNextCursor);
 
   const eventRefs = useRef<Map<string, HTMLElement>>(new Map());
   const inFlightRef = useRef(false);
+  const prevCursorRef = useRef<string | undefined>(undefined);
 
   type FetchMode = 'replace' | 'append';
 
@@ -148,30 +151,93 @@ export default function FeedClient(props: FeedClientProps) {
   }, []);
 
   const handleDayClick = useCallback(
-    (day: Date) => {
+    async (day: Date) => {
       const key = toLocalYMD(day);
 
-      // First, try to find an explicit anchor by date (where you added data-date and scroll-mt-[44px])
-      let target = document.querySelector<HTMLElement>(`[data-date="${key}"]`);
+      const scrollToTarget = (el: HTMLElement) => {
+        const headerPx = headerH ?? 0;
+        const EXTRA_OFFSET_PX = 32;
+        const top = window.scrollY + el.getBoundingClientRect().top - headerPx - EXTRA_OFFSET_PX;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      };
 
-      // Fallback: if there is no anchor, jump to the first card for this date
+      // 1) Try to scroll to an already-loaded anchor.
+      let target = document.querySelector<HTMLElement>(`[data-date="${key}"]`);
       if (!target) {
         const firstEvent = events.find((e) => e.date === key);
         if (firstEvent) {
           target = eventRefs.current.get(String(firstEvent.id)) || null;
         }
       }
+      if (target) {
+        scrollToTarget(target);
+        return;
+      }
 
-      if (!target) return;
+      // 2) Not loaded yet — fetch a chunk around the date and then scroll.
+      if (inFlightRef.current) return;
+      inFlightRef.current = true;
+      setIsJumpLoading(true);
+      setError(null);
 
-      // `scrollIntoView` can overshoot in our layout; compute the scroll position manually.
-      const headerPx = headerH ?? 0;
-      // Tune this if needed: positive value means "stop a bit earlier" (less scroll down).
-      const EXTRA_OFFSET_PX = 32;
-      const top = window.scrollY + target.getBoundingClientRect().top - headerPx - EXTRA_OFFSET_PX;
-      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      try {
+        const qs = new URLSearchParams();
+        qs.set('anchor', key);
+        qs.set('beforeLimit', String(FEED_PAGE_SIZE));
+        qs.set('afterLimit', String(FEED_PAGE_SIZE));
+        if (country) qs.set('country', country);
+        if (city) qs.set('city', city);
+
+        const res = await apiRequest<unknown>(`v1/gig/around?${qs.toString()}`, 'GET');
+        if (!isV1GigAroundGetResponseBody(res)) {
+          throw new Error('Invalid API response: expected { before: [], after: [] }');
+        }
+
+        const mappedBefore: Event[] = res.before.map((gig) =>
+          gigToEvent(gig, { resolveCountryName: (iso) => t('country', iso) }),
+        );
+        const mappedAfter: Event[] = res.after.map((gig) =>
+          gigToEvent(gig, { resolveCountryName: (iso) => t('country', iso) }),
+        );
+
+        prevCursorRef.current = res.prevCursor;
+        // After a jump, treat the latest received cursor as the active one.
+        setNextCursor(res.nextCursor);
+
+        const unique = (() => {
+          const uniqueById = new Map<string, Event>();
+          // Keep whatever user already loaded, then add the around chunk.
+          for (const e of events) uniqueById.set(e.id, e);
+          for (const e of mappedBefore) uniqueById.set(e.id, e);
+          for (const e of mappedAfter) uniqueById.set(e.id, e);
+          const arr = Array.from(uniqueById.values());
+          arr.sort((a, b) => a.date.localeCompare(b.date));
+          return arr;
+        })();
+
+        setEvents(unique);
+
+        await new Promise<void>((r) => requestAnimationFrame(() => r()));
+        target = document.querySelector<HTMLElement>(`[data-date="${key}"]`);
+        if (!target) {
+          const firstEvent = unique.find((e) => e.date === key);
+          if (firstEvent) {
+            target = eventRefs.current.get(String(firstEvent.id)) || null;
+          }
+        }
+        if (!target) {
+          throw new Error(`Failed to locate target date after load: ${key}`);
+        }
+        scrollToTarget(target);
+      } catch (e) {
+        const message = e instanceof Error ? e.message : 'Failed to jump to date.';
+        setError(message);
+      } finally {
+        setIsJumpLoading(false);
+        inFlightRef.current = false;
+      }
     },
-    [events, headerH],
+    [city, country, events, headerH, t],
   );
 
   useFeedHeaderConfigSync({
@@ -211,6 +277,17 @@ export default function FeedClient(props: FeedClientProps) {
     <div className="min-h-[100svh]">
       <main className={styles.main}>
         <div className="px-8 md:px-8 py-8">
+          {isJumpLoading ? (
+            <div
+              className="fixed left-1/2 -translate-x-1/2 z-50"
+              style={{ top: 'calc(var(--header-h, 44px) + 8px)' }}
+              aria-live="polite"
+            >
+              <div className="rounded-md bg-white/90 backdrop-blur px-3 py-1 text-sm text-gray-700 shadow">
+                Jumping…
+              </div>
+            </div>
+          ) : null}
           <FeedMonths events={events} registerEventRef={registerEventRef} />
 
           <div ref={sentinelRef} className="h-12" aria-hidden />
