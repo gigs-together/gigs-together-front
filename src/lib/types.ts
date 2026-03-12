@@ -30,6 +30,7 @@ export type Event = {
 
 export interface V1GigGetResponseBody {
   gigs: V1GigGetResponseBodyGig[];
+  prevCursor?: string;
   nextCursor?: string;
 }
 

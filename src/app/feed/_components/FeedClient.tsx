@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import styles from '@/app/page.module.css';
 import { toLocalYMD } from '@/lib/utils';
 import '@/app/style.css';
@@ -20,11 +20,26 @@ import { useInfiniteScroll } from './feed-client/useInfiniteScroll';
 import { useVisibleEventDateOnScroll } from './feed-client/useVisibleEventDateOnScroll';
 import { isV1GigAroundGetResponseBody } from './feed-client/utils';
 
+interface ScrollAnchor {
+  readonly eventId: string;
+  readonly topPx: number;
+}
+
 interface FeedClientProps {
   country: string; // ISO like "es"
   city: string; // slug like "barcelona"
   initialEvents?: Event[];
   initialNextCursor?: string;
+}
+
+function compareEventsAsc(a: Event, b: Event): number {
+  return a.date.localeCompare(b.date) || String(a.id).localeCompare(String(b.id));
+}
+
+function sortEventsAsc(input: Event[]): Event[] {
+  const next = input.slice();
+  next.sort(compareEventsAsc);
+  return next;
 }
 
 export default function FeedClient(props: FeedClientProps) {
@@ -36,36 +51,125 @@ export default function FeedClient(props: FeedClientProps) {
 
   const [events, setEvents] = useState<Event[]>(() => initialEvents ?? []);
   const [isLoading, setIsLoading] = useState(() => initialEvents === undefined);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isLoadingNext, setIsLoadingNext] = useState(false);
+  const [isLoadingPrev, setIsLoadingPrev] = useState(false);
   const [isJumpLoading, setIsJumpLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | undefined>(() => initialNextCursor);
+  const [prevCursor, setPrevCursor] = useState<string | undefined>(undefined);
+  const [userScrollSessionKey, setUserScrollSessionKey] = useState(0);
 
   const eventRefs = useRef<Map<string, HTMLElement>>(new Map());
-  const inFlightRef = useRef(false);
-  const prevCursorRef = useRef<string | undefined>(undefined);
+  const inFlightNextRef = useRef(false);
+  const inFlightPrevRef = useRef(false);
+  const inFlightJumpRef = useRef(false);
+  const pendingScrollRestoreRef = useRef<ScrollAnchor | null>(null);
 
-  type FetchMode = 'replace' | 'append';
+  const mergeUniqueSorted = useCallback((base: Event[], incoming: Event[]) => {
+    const uniqueById = new Map<string, Event>();
+    for (const e of base) uniqueById.set(e.id, e);
+    for (const e of incoming) uniqueById.set(e.id, e);
+    const unique = Array.from(uniqueById.values());
+    unique.sort(compareEventsAsc);
+    return unique;
+  }, []);
 
-  const fetchPage = useCallback(
-    async (mode: FetchMode, options?: Readonly<{ cursor?: string }>) => {
-      if (inFlightRef.current) return;
-      inFlightRef.current = true;
+  const captureScrollAnchor = useCallback((): ScrollAnchor | null => {
+    const headerPx = headerH ?? 0;
+    const els = Array.from(document.querySelectorAll<HTMLElement>('[data-event-id]'));
+    if (els.length === 0) return null;
 
+    let bestBelow: { el: HTMLElement; top: number } | null = null;
+    let bestAbove: { el: HTMLElement; top: number } | null = null;
+
+    for (const el of els) {
+      const top = el.getBoundingClientRect().top - headerPx;
+      if (top >= 0) {
+        if (!bestBelow || top < bestBelow.top) bestBelow = { el, top };
+      } else {
+        if (!bestAbove || top > bestAbove.top) bestAbove = { el, top };
+      }
+    }
+
+    const target = (bestBelow ?? bestAbove)?.el;
+    const topPx = (bestBelow ?? bestAbove)?.top;
+    const eventId = target?.dataset.eventId;
+    if (!target || topPx === undefined || !eventId) return null;
+    return { eventId, topPx };
+  }, [headerH]);
+
+  const fetchNextPage = useCallback(async () => {
+    if (!nextCursor) return;
+    if (inFlightNextRef.current) return;
+    inFlightNextRef.current = true;
+
+    const qs = new URLSearchParams();
+    qs.set('limit', String(FEED_PAGE_SIZE));
+    qs.set('cursor', nextCursor);
+    if (country) qs.set('country', country);
+    if (city) qs.set('city', city);
+
+    try {
+      setIsLoadingNext(true);
+      const res = await apiRequest<V1GigGetResponseBody>(`v1/gig?${qs.toString()}`, 'GET');
+      const mapped: Event[] = res.gigs.map((gig) =>
+        gigToEvent(gig, { resolveCountryName: (iso) => t('country', iso) }),
+      );
+
+      setEvents((prev) => mergeUniqueSorted(prev, mapped));
+      setNextCursor(res.nextCursor);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsLoadingNext(false);
+      inFlightNextRef.current = false;
+    }
+  }, [city, country, mergeUniqueSorted, nextCursor, t]);
+
+  const fetchPrevPage = useCallback(async () => {
+    if (!prevCursor) return;
+    if (inFlightPrevRef.current) return;
+    inFlightPrevRef.current = true;
+
+    const anchor = captureScrollAnchor();
+    if (anchor) pendingScrollRestoreRef.current = anchor;
+
+    const qs = new URLSearchParams();
+    qs.set('limit', String(FEED_PAGE_SIZE));
+    qs.set('cursor', prevCursor);
+    qs.set('direction', 'prev');
+    if (country) qs.set('country', country);
+    if (city) qs.set('city', city);
+
+    try {
+      setIsLoadingPrev(true);
+      const res = await apiRequest<V1GigGetResponseBody>(`v1/gig?${qs.toString()}`, 'GET');
+      const mapped: Event[] = res.gigs.map((gig) =>
+        gigToEvent(gig, { resolveCountryName: (iso) => t('country', iso) }),
+      );
+
+      setEvents((prev) => mergeUniqueSorted(prev, mapped));
+      setPrevCursor(res.prevCursor);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsLoadingPrev(false);
+      inFlightPrevRef.current = false;
+    }
+  }, [captureScrollAnchor, city, country, mergeUniqueSorted, prevCursor, t]);
+
+  const fetchInitial = useCallback(
+    async (cursor?: string) => {
       const qs = new URLSearchParams();
       qs.set('limit', String(FEED_PAGE_SIZE));
-      const cursor = options?.cursor;
       if (cursor) qs.set('cursor', cursor);
       if (country) qs.set('country', country);
       if (city) qs.set('city', city);
 
       try {
-        if (mode === 'replace') {
-          setIsLoading(true);
-          setError(null);
-        } else {
-          setIsLoadingMore(true);
-        }
+        setIsLoading(true);
+        setError(null);
+        setPrevCursor(undefined);
 
         const res = await apiRequest<V1GigGetResponseBody>(`v1/gig?${qs.toString()}`, 'GET');
 
@@ -73,25 +177,17 @@ export default function FeedClient(props: FeedClientProps) {
           gigToEvent(gig, { resolveCountryName: (iso) => t('country', iso) }),
         );
 
-        setEvents((prev) => {
-          const merged = mode === 'replace' ? mapped : [...prev, ...mapped];
-
-          // Cursor pagination can overlap; ensure a stable, unique list by gig id.
-          const uniqueById = new Map<string, Event>();
-          merged.forEach((e) => uniqueById.set(e.id, e));
-
-          const unique = Array.from(uniqueById.values());
-          unique.sort((a, b) => a.date.localeCompare(b.date));
-          return unique;
-        });
-
+        setEvents(sortEventsAsc(mapped));
         setNextCursor(res.nextCursor);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
         setIsLoading(false);
-        setIsLoadingMore(false);
-        inFlightRef.current = false;
+        setIsLoadingNext(false);
+        setIsLoadingPrev(false);
+        inFlightNextRef.current = false;
+        inFlightPrevRef.current = false;
+        inFlightJumpRef.current = false;
       }
     },
     [city, country, t],
@@ -103,19 +199,21 @@ export default function FeedClient(props: FeedClientProps) {
       setNextCursor(initialNextCursor);
       setError(null);
       setIsLoading(false);
-      setIsLoadingMore(false);
-      inFlightRef.current = false;
+      setIsLoadingNext(false);
+      setIsLoadingPrev(false);
+      setIsJumpLoading(false);
+      setPrevCursor(undefined);
+      inFlightNextRef.current = false;
+      inFlightPrevRef.current = false;
+      inFlightJumpRef.current = false;
       return;
     }
 
-    void fetchPage('replace');
-  }, [country, city, fetchPage, initialEvents, initialNextCursor]);
+    void fetchInitial();
+  }, [country, city, fetchInitial, initialEvents, initialNextCursor]);
 
   const hasMore = Boolean(nextCursor);
-  const loadMore = useCallback(() => {
-    if (isLoading || isLoadingMore || !nextCursor) return;
-    void fetchPage('append', { cursor: nextCursor });
-  }, [fetchPage, isLoading, isLoadingMore, nextCursor]);
+  const hasPrev = Boolean(prevCursor);
 
   const {
     availableDates: calendarAvailableDates,
@@ -134,12 +232,21 @@ export default function FeedClient(props: FeedClientProps) {
 
   useHashAutoScroll({ events });
 
-  const { sentinelRef } = useInfiniteScroll({
+  const { sentinelRef: bottomSentinelRef } = useInfiniteScroll({
     isEnabled: true,
-    hasMore,
-    isLoading,
-    isLoadingMore,
-    onLoadMore: loadMore,
+    canLoadMore: hasMore && !isLoading && !isLoadingNext && !isJumpLoading,
+    isLoading: isLoading || isLoadingNext || isJumpLoading,
+    onLoadMore: fetchNextPage,
+    resetUserScrollKey: userScrollSessionKey,
+  });
+
+  const { sentinelRef: topSentinelRef } = useInfiniteScroll({
+    isEnabled: true,
+    canLoadMore: hasPrev && !isLoading && !isLoadingPrev && !isJumpLoading,
+    isLoading: isLoading || isLoadingPrev || isJumpLoading,
+    onLoadMore: fetchPrevPage,
+    rootMargin: '400px 0px',
+    resetUserScrollKey: userScrollSessionKey,
   });
 
   const registerEventRef = useCallback((eventId: string, element: HTMLElement | null) => {
@@ -149,6 +256,23 @@ export default function FeedClient(props: FeedClientProps) {
       eventRefs.current.delete(eventId);
     }
   }, []);
+
+  useLayoutEffect(() => {
+    const pending = pendingScrollRestoreRef.current;
+    if (!pending) return;
+
+    const headerPx = headerH ?? 0;
+    const el = document.querySelector<HTMLElement>(`[data-event-id="${pending.eventId}"]`);
+    if (!el) {
+      pendingScrollRestoreRef.current = null;
+      return;
+    }
+
+    const nextTop = el.getBoundingClientRect().top - headerPx;
+    const delta = nextTop - pending.topPx;
+    if (delta !== 0) window.scrollBy({ top: delta, behavior: 'auto' });
+    pendingScrollRestoreRef.current = null;
+  }, [events, headerH]);
 
   const handleDayClick = useCallback(
     async (day: Date) => {
@@ -175,10 +299,11 @@ export default function FeedClient(props: FeedClientProps) {
       }
 
       // 2) Not loaded yet — fetch a chunk around the date and then scroll.
-      if (inFlightRef.current) return;
-      inFlightRef.current = true;
+      if (inFlightJumpRef.current) return;
+      inFlightJumpRef.current = true;
       setIsJumpLoading(true);
       setError(null);
+      setUserScrollSessionKey((x) => x + 1);
 
       try {
         const qs = new URLSearchParams();
@@ -200,27 +325,17 @@ export default function FeedClient(props: FeedClientProps) {
           gigToEvent(gig, { resolveCountryName: (iso) => t('country', iso) }),
         );
 
-        prevCursorRef.current = res.prevCursor;
-        // After a jump, treat the latest received cursor as the active one.
+        // Reset the window around the target date so cursors stay consistent.
+        setPrevCursor(res.prevCursor);
         setNextCursor(res.nextCursor);
 
-        const unique = (() => {
-          const uniqueById = new Map<string, Event>();
-          // Keep whatever user already loaded, then add the around chunk.
-          for (const e of events) uniqueById.set(e.id, e);
-          for (const e of mappedBefore) uniqueById.set(e.id, e);
-          for (const e of mappedAfter) uniqueById.set(e.id, e);
-          const arr = Array.from(uniqueById.values());
-          arr.sort((a, b) => a.date.localeCompare(b.date));
-          return arr;
-        })();
-
-        setEvents(unique);
+        const windowEvents = mergeUniqueSorted(mappedBefore, mappedAfter);
+        setEvents(windowEvents);
 
         await new Promise<void>((r) => requestAnimationFrame(() => r()));
         target = document.querySelector<HTMLElement>(`[data-date="${key}"]`);
         if (!target) {
-          const firstEvent = unique.find((e) => e.date === key);
+          const firstEvent = windowEvents.find((e) => e.date === key);
           if (firstEvent) {
             target = eventRefs.current.get(String(firstEvent.id)) || null;
           }
@@ -234,10 +349,10 @@ export default function FeedClient(props: FeedClientProps) {
         setError(message);
       } finally {
         setIsJumpLoading(false);
-        inFlightRef.current = false;
+        inFlightJumpRef.current = false;
       }
     },
-    [city, country, events, headerH, t],
+    [city, country, events, headerH, mergeUniqueSorted, t],
   );
 
   useFeedHeaderConfigSync({
@@ -288,10 +403,14 @@ export default function FeedClient(props: FeedClientProps) {
               </div>
             </div>
           ) : null}
+          <div ref={topSentinelRef} className="h-px" aria-hidden />
+          {isLoadingPrev ? (
+            <div className="py-4 text-center text-gray-500">Loading previous…</div>
+          ) : null}
           <FeedMonths events={events} registerEventRef={registerEventRef} />
 
-          <div ref={sentinelRef} className="h-12" aria-hidden />
-          {isLoadingMore ? (
+          <div ref={bottomSentinelRef} className="h-12" aria-hidden />
+          {isLoadingNext ? (
             <div className="py-4 text-center text-gray-500">Loading more…</div>
           ) : null}
         </div>

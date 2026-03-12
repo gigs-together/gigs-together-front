@@ -4,11 +4,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface UseInfiniteScrollParams {
   readonly isEnabled: boolean;
-  readonly hasMore: boolean;
+  readonly canLoadMore: boolean;
   readonly isLoading: boolean;
-  readonly isLoadingMore: boolean;
   readonly onLoadMore: () => void;
   readonly rootMargin?: string;
+  readonly requiresUserScroll?: boolean;
+  readonly resetUserScrollKey?: string | number;
 }
 
 export interface UseInfiniteScrollResult {
@@ -18,11 +19,12 @@ export interface UseInfiniteScrollResult {
 export function useInfiniteScroll(params: UseInfiniteScrollParams): UseInfiniteScrollResult {
   const {
     isEnabled,
-    hasMore,
     isLoading,
-    isLoadingMore,
+    canLoadMore,
     onLoadMore,
     rootMargin = '400px 0px',
+    requiresUserScroll = true,
+    resetUserScrollKey,
   } = params;
 
   const hasUserScrolledRef = useRef(false);
@@ -35,13 +37,32 @@ export function useInfiniteScroll(params: UseInfiniteScrollParams): UseInfiniteS
   useEffect(() => {
     if (!isEnabled) return;
 
-    const onScroll = () => {
+    if (!requiresUserScroll) return;
+
+    const mark = () => {
       hasUserScrolledRef.current = true;
     };
 
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, [isEnabled]);
+    const onKeyDown = (e: KeyboardEvent) => {
+      const keys = new Set(['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' ']);
+      if (keys.has(e.key)) mark();
+    };
+
+    window.addEventListener('wheel', mark, { passive: true });
+    window.addEventListener('touchstart', mark, { passive: true });
+    window.addEventListener('pointerdown', mark, { passive: true });
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('wheel', mark);
+      window.removeEventListener('touchstart', mark);
+      window.removeEventListener('pointerdown', mark);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isEnabled, requiresUserScroll]);
+
+  useEffect(() => {
+    hasUserScrolledRef.current = false;
+  }, [resetUserScrollKey]);
 
   useEffect(() => {
     if (!isEnabled) return;
@@ -51,8 +72,8 @@ export function useInfiniteScroll(params: UseInfiniteScrollParams): UseInfiniteS
       (entries) => {
         const hit = entries.some((e) => e.isIntersecting);
         if (!hit) return;
-        if (!hasUserScrolledRef.current) return;
-        if (!hasMore || isLoading || isLoadingMore) return;
+        if (requiresUserScroll && !hasUserScrolledRef.current) return;
+        if (!canLoadMore || isLoading) return;
         onLoadMore();
       },
       {
@@ -64,7 +85,7 @@ export function useInfiniteScroll(params: UseInfiniteScrollParams): UseInfiniteS
 
     io.observe(sentinel);
     return () => io.disconnect();
-  }, [isEnabled, hasMore, isLoading, isLoadingMore, onLoadMore, rootMargin, sentinel]);
+  }, [isEnabled, canLoadMore, isLoading, onLoadMore, requiresUserScroll, rootMargin, sentinel]);
 
   return { sentinelRef };
 }
