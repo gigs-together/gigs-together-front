@@ -44,6 +44,22 @@ const TopForm = ({
     return new Date(y, m - 1, 1);
   }, [visibleEventDate]);
 
+  const { startMonth, endMonth } = useMemo(() => {
+    const dates = availableDates ?? [];
+    if (dates.length === 0) return { startMonth: undefined, endMonth: undefined };
+    const sorted = [...dates].sort();
+    const first = sorted[0];
+    const last = sorted[sorted.length - 1];
+    if (!first || !last) return { startMonth: undefined, endMonth: undefined };
+    const [y1, m1] = first.split('-').map(Number);
+    const [y2, m2] = last.split('-').map(Number);
+    if (!y1 || !m1 || !y2 || !m2) return { startMonth: undefined, endMonth: undefined };
+    return {
+      startMonth: new Date(y1, m1 - 1, 1),
+      endMonth: new Date(y2, m2 - 1, 1),
+    };
+  }, [availableDates]);
+
   const handleDayClick = (day: Date, modifiers?: Modifiers, e?: MouseEvent) => {
     if (modifiers?.disabled) return; // ignore clicks on disabled days
     onDayClick?.(day, modifiers, e);
@@ -84,6 +100,8 @@ const TopForm = ({
             onMonthChange={setMonth}
             disabled={disabledMatcher}
             onDayClick={handleDayClick}
+            startMonth={startMonth}
+            endMonth={endMonth}
           />
         </PopoverContent>
       </Popover>
