@@ -1,8 +1,7 @@
 'use client';
 
-import Link from 'next/link';
-import type { Route } from 'next';
 import dynamic from 'next/dynamic';
+import type { Route } from 'next';
 import { normalizeLocationTitle } from '@/lib/utils';
 import type { CalendarDatesStatus } from '@/app/_components/HeaderConfigProvider';
 
@@ -48,14 +47,14 @@ export default function Header(props: HeaderProps) {
         <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center w-full h-full">
           <div className="min-w-0 justify-self-start">
             <h1 className="text-xl font-semibold whitespace-nowrap">
-              <Link
+              <a
                 href={homeHref}
                 className="cursor-pointer select-none"
                 aria-label="Go to home"
                 title="Go to home"
               >
                 Gigs<span className="hidden sm:inline"> Together</span>!
-              </Link>
+              </a>
             </h1>
           </div>
           <div className="min-w-0 justify-self-center">
