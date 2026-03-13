@@ -3,9 +3,13 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useMemo, useState } from 'react';
 
+export type CalendarDatesStatus = 'loading' | 'ready' | 'error';
+
 export interface HeaderConfig {
   earliestEventDate?: string;
   availableDates?: string[];
+  calendarDatesStatus?: CalendarDatesStatus;
+  calendarDatesError?: string;
   onDayClick?: (day: Date) => void;
 }
 

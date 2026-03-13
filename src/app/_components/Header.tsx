@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { Route } from 'next';
 import dynamic from 'next/dynamic';
 import { normalizeLocationTitle } from '@/lib/utils';
+import type { CalendarDatesStatus } from '@/app/_components/HeaderConfigProvider';
 
 const TopForm = dynamic(() => import('@/app/_components/TopForm'), { ssr: false });
 const HeaderActions = dynamic(() => import('@/app/_components/HeaderActions'), { ssr: false });
@@ -12,6 +13,8 @@ interface HeaderProps {
   earliestEventDate?: string;
   onDayClick?: (day: Date) => void;
   availableDates?: string[]; // formatted as YYYY-MM-DD
+  calendarDatesStatus?: CalendarDatesStatus;
+  calendarDatesError?: string;
   showCalendar?: boolean;
   showSuggestGig?: boolean;
   country: string;
@@ -23,6 +26,8 @@ export default function Header(props: HeaderProps) {
     earliestEventDate,
     onDayClick,
     availableDates,
+    calendarDatesStatus,
+    calendarDatesError,
     showCalendar = true,
     showSuggestGig = true,
     country,
@@ -59,6 +64,8 @@ export default function Header(props: HeaderProps) {
                 visibleEventDate={earliestEventDate}
                 onDayClick={onDayClick}
                 availableDates={availableDates}
+                calendarDatesStatus={calendarDatesStatus}
+                calendarDatesError={calendarDatesError}
               />
             ) : null}
           </div>

@@ -30,6 +30,19 @@ export type Event = {
 
 export interface V1GigGetResponseBody {
   gigs: V1GigGetResponseBodyGig[];
+  prevCursor?: string;
+  nextCursor?: string;
+}
+
+export interface V1GigDatesGetResponseBody {
+  dates: string[];
+}
+
+export interface V1GigAroundGetResponseBody {
+  before: V1GigGetResponseBodyGig[];
+  after: V1GigGetResponseBodyGig[];
+  prevCursor?: string;
+  nextCursor?: string;
 }
 
 export interface V1GigGetResponseBodyGig {

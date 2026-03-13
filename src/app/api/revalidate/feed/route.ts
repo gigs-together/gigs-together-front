@@ -10,9 +10,9 @@ interface RevalidateFeedRequestBody {
 }
 
 const getSecretOrThrow = (): string => {
-  const secret = (process.env.REVALIDATE_SECRET ?? '').trim();
+  const secret = (process.env.FEED_REVALIDATE_SECRET ?? '').trim();
   if (!secret) {
-    throw new Error('Missing REVALIDATE_SECRET');
+    throw new Error('Missing FEED_REVALIDATE_SECRET');
   }
   return secret;
 };

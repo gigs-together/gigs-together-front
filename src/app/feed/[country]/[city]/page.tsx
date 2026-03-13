@@ -36,7 +36,7 @@ export default async function Page(props: PageProps<'/feed/[country]/[city]'>) {
   const i18n = await getTranslations('en', 'country');
   const tCountry = tFromTranslations(i18n.translations, 'country');
 
-  const feed = await getFeed({ page: 1, size: PAGE_SIZE, country, city });
+  const feed = await getFeed({ limit: PAGE_SIZE, country, city });
   const initialEvents: Event[] = feed.gigs.map((gig) =>
     gigToEvent(gig, { resolveCountryName: (iso) => tCountry(iso) }),
   );
@@ -47,8 +47,8 @@ export default async function Page(props: PageProps<'/feed/[country]/[city]'>) {
         country={country}
         city={city}
         initialEvents={initialEvents}
-        initialPage={1}
-        initialHasMore={feed.gigs.length === PAGE_SIZE}
+        initialPrevCursor={feed.prevCursor}
+        initialNextCursor={feed.nextCursor}
       />
     </I18nProvider>
   );

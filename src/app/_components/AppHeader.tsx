@@ -40,6 +40,8 @@ export default function AppHeader() {
       showSuggestGig={!isGigForm}
       earliestEventDate={config.earliestEventDate}
       availableDates={config.availableDates}
+      calendarDatesStatus={config.calendarDatesStatus}
+      calendarDatesError={config.calendarDatesError}
       onDayClick={config.onDayClick}
     />
   );

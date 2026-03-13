@@ -7,11 +7,14 @@ import { FaRegCalendar } from 'react-icons/fa';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { Modifiers } from 'react-day-picker';
+import type { CalendarDatesStatus } from '@/app/_components/HeaderConfigProvider';
 
 interface TopFormProps {
   visibleEventDate?: string;
   onDayClick?: (day: Date, modifiers?: Modifiers, e?: MouseEvent) => void;
   availableDates?: string[]; // list of dates that have events (YYYY-MM-DD)
+  calendarDatesStatus?: CalendarDatesStatus;
+  calendarDatesError?: string;
 }
 
 const formatDisplayMonth = (dateString?: string) => {
@@ -23,7 +26,13 @@ const formatDisplayMonth = (dateString?: string) => {
   return `${d.toLocaleString('en-US', { month: 'long' })} ${y}`;
 };
 
-const TopForm = ({ visibleEventDate, onDayClick, availableDates }: TopFormProps) => {
+const TopForm = ({
+  visibleEventDate,
+  onDayClick,
+  availableDates,
+  calendarDatesStatus,
+  calendarDatesError,
+}: TopFormProps) => {
   const availableSet = useMemo(() => new Set(availableDates ?? []), [availableDates]);
   const [open, setOpen] = useState(false);
   const [month, setMonth] = useState<Date | undefined>(undefined);
@@ -40,7 +49,10 @@ const TopForm = ({ visibleEventDate, onDayClick, availableDates }: TopFormProps)
     onDayClick?.(day, modifiers, e);
   };
 
-  const disabledMatcher = (date: Date) => !availableSet.has(toLocalYMD(date));
+  const disabledMatcher = (date: Date) => {
+    if (calendarDatesStatus === 'loading' || calendarDatesStatus === 'error') return true;
+    return !availableSet.has(toLocalYMD(date));
+  };
 
   return (
     <form className={cn('flex w-fit items-center space-x-4 rounded-md sticky top-0')}>
@@ -58,6 +70,14 @@ const TopForm = ({ visibleEventDate, onDayClick, availableDates }: TopFormProps)
           </span>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="center">
+          {calendarDatesStatus === 'loading' ? (
+            <div className="px-3 py-2 text-sm text-gray-600">Loading calendar…</div>
+          ) : null}
+          {calendarDatesStatus === 'error' ? (
+            <div className="px-3 py-2 text-sm text-red-600">
+              Failed to load calendar dates{calendarDatesError ? `: ${calendarDatesError}` : '.'}
+            </div>
+          ) : null}
           <Calendar
             mode="single"
             month={month}
