@@ -45,6 +45,10 @@ export interface V1GigAroundGetResponseBody {
   nextCursor?: string;
 }
 
+export interface V1GigByPublicIdGetResponseBody {
+  gig: V1GigGetResponseBodyGig;
+}
+
 export interface V1GigGetResponseBodyGig {
   id: string;
   title: string;

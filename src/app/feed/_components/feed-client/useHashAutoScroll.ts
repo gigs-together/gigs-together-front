@@ -7,10 +7,18 @@ export interface UseHashAutoScrollParams {
   readonly events: Event[];
   readonly highlightClass?: string;
   readonly highlightDurationMs?: number;
+  readonly headerOffsetPx?: number;
+  readonly extraOffsetPx?: number;
 }
 
 export function useHashAutoScroll(params: UseHashAutoScrollParams) {
-  const { events, highlightClass = 'gig-anchor-auto', highlightDurationMs = 1800 } = params;
+  const {
+    events,
+    highlightClass = 'gig-anchor-auto',
+    highlightDurationMs = 1800,
+    headerOffsetPx = 0,
+    extraOffsetPx = 0,
+  } = params;
 
   const lastAutoScrolledHashRef = useRef<string | null>(null);
   const autoHighlightTimeoutRef = useRef<number | undefined>(undefined);
@@ -31,7 +39,8 @@ export function useHashAutoScroll(params: UseHashAutoScrollParams) {
 
     lastAutoScrolledHashRef.current = hash;
     requestAnimationFrame(() => {
-      el.scrollIntoView({ block: 'start', inline: 'nearest' });
+      const top = window.scrollY + el.getBoundingClientRect().top - headerOffsetPx - extraOffsetPx;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
       el.classList.remove(highlightClass);
       // Force a reflow so the class removal is committed and the CSS animation
       // reliably restarts when we add the class again.
@@ -46,7 +55,7 @@ export function useHashAutoScroll(params: UseHashAutoScrollParams) {
         el.classList.remove(highlightClass);
       }, highlightDurationMs);
     });
-  }, [events, highlightClass, highlightDurationMs]);
+  }, [events, extraOffsetPx, headerOffsetPx, highlightClass, highlightDurationMs]);
 
   useEffect(() => {
     return () => {

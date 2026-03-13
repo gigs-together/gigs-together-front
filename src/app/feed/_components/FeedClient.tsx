@@ -18,9 +18,12 @@ import { apiRequest } from '@/lib/api';
 import { useHashAutoScroll } from './feed-client/useHashAutoScroll';
 import { useInfiniteScroll } from './feed-client/useInfiniteScroll';
 import { useVisibleEventDateOnScroll } from './feed-client/useVisibleEventDateOnScroll';
-import { isV1GigAroundGetResponseBody } from './feed-client/utils';
 import { createInitialFeedLoadingState, feedLoadingReducer } from './feed-client/feedLoading';
 import type { FeedLoadingState } from './feed-client/feedLoading';
+import {
+  isV1GigAroundGetResponseBody,
+  isV1GigByPublicIdGetResponseBody,
+} from './feed-client/utils';
 
 interface ScrollAnchor {
   readonly eventId: string;
@@ -67,6 +70,7 @@ export default function FeedClient(props: FeedClientProps) {
   const inFlightNextRef = useRef(false);
   const inFlightPrevRef = useRef(false);
   const inFlightJumpRef = useRef(false);
+  const lastMissingHashTargetRef = useRef<string | null>(null);
   const pendingScrollRestoreRef = useRef<ScrollAnchor | null>(null);
 
   const mergeUniqueSorted = useCallback((base: Event[], incoming: Event[]) => {
@@ -77,6 +81,57 @@ export default function FeedClient(props: FeedClientProps) {
     unique.sort(compareEventsAsc);
     return unique;
   }, []);
+
+  const fetchAroundAndReplace = useCallback(
+    async (anchorYmd: string): Promise<Event[]> => {
+      const qs = new URLSearchParams();
+      qs.set('anchor', anchorYmd);
+      qs.set('beforeLimit', String(FEED_PAGE_SIZE));
+      qs.set('afterLimit', String(FEED_PAGE_SIZE));
+      if (country) qs.set('country', country);
+      if (city) qs.set('city', city);
+
+      const res = await apiRequest<unknown>(`v1/gig/around?${qs.toString()}`, 'GET');
+      if (!isV1GigAroundGetResponseBody(res)) {
+        throw new Error('Invalid API response: expected { before: [], after: [] }');
+      }
+
+      const mappedBefore: Event[] = res.before.map((gig) =>
+        gigToEvent(gig, { resolveCountryName: (iso) => t('country', iso) }),
+      );
+      const mappedAfter: Event[] = res.after.map((gig) =>
+        gigToEvent(gig, { resolveCountryName: (iso) => t('country', iso) }),
+      );
+
+      setPrevCursor(res.prevCursor);
+      setNextCursor(res.nextCursor);
+
+      const windowEvents = mergeUniqueSorted(mappedBefore, mappedAfter);
+      setEvents(windowEvents);
+      return windowEvents;
+    },
+    [city, country, mergeUniqueSorted, t],
+  );
+
+  const fetchHashTargetAnchorYmd = useCallback(
+    async (publicId: string): Promise<string> => {
+      const qs = new URLSearchParams();
+      if (country) qs.set('country', country);
+      if (city) qs.set('city', city);
+
+      const query = qs.toString();
+      const res = await apiRequest<unknown>(
+        `v1/gig/${encodeURIComponent(publicId)}${query ? `?${query}` : ''}`,
+        'GET',
+      );
+      if (!isV1GigByPublicIdGetResponseBody(res)) {
+        throw new Error('Invalid API response: expected { gig: { id, date } }');
+      }
+
+      return gigToEvent(res.gig, { resolveCountryName: (iso) => t('country', iso) }).date;
+    },
+    [city, country, t],
+  );
 
   const captureScrollAnchor = useCallback((): ScrollAnchor | null => {
     const headerPx = headerH ?? 0;
@@ -241,7 +296,61 @@ export default function FeedClient(props: FeedClientProps) {
     headerOffsetPx: headerH ?? 0,
   });
 
-  useHashAutoScroll({ events });
+  useHashAutoScroll({ events, headerOffsetPx: headerH ?? 0, extraOffsetPx: 32 });
+
+  const ensureHashTargetLoaded = useCallback(async () => {
+    if (loading.initial) return;
+
+    const hash = window.location.hash;
+    if (!hash) {
+      lastMissingHashTargetRef.current = null;
+      return;
+    }
+
+    const id = hash.startsWith('#') ? hash.slice(1) : hash;
+    if (!id) return;
+
+    const el = document.getElementById(id);
+    if (el) {
+      lastMissingHashTargetRef.current = null;
+      return;
+    }
+
+    if (inFlightJumpRef.current) return;
+    if (lastMissingHashTargetRef.current === id) return;
+    lastMissingHashTargetRef.current = id;
+
+    inFlightJumpRef.current = true;
+    dispatchLoading({ type: 'jump:start' });
+    setError(null);
+    setUserScrollSessionKey((x) => x + 1);
+
+    try {
+      const anchorYmd = await fetchHashTargetAnchorYmd(id);
+      await fetchAroundAndReplace(anchorYmd);
+
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
+      const after = document.getElementById(id);
+      if (!after) {
+        throw new Error(`Failed to locate target event after load: ${id}`);
+      }
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Failed to load event anchor.';
+      setError(message);
+    } finally {
+      dispatchLoading({ type: 'jump:end' });
+      inFlightJumpRef.current = false;
+    }
+  }, [fetchAroundAndReplace, fetchHashTargetAnchorYmd, loading.initial]);
+
+  useEffect(() => {
+    const onHashChange = () => {
+      void ensureHashTargetLoaded();
+    };
+    window.addEventListener('hashchange', onHashChange);
+    void ensureHashTargetLoaded();
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, [ensureHashTargetLoaded]);
 
   const { sentinelRef: bottomSentinelRef } = useInfiniteScroll({
     isEnabled: true,
@@ -317,31 +426,7 @@ export default function FeedClient(props: FeedClientProps) {
       setUserScrollSessionKey((x) => x + 1);
 
       try {
-        const qs = new URLSearchParams();
-        qs.set('anchor', key);
-        qs.set('beforeLimit', String(FEED_PAGE_SIZE));
-        qs.set('afterLimit', String(FEED_PAGE_SIZE));
-        if (country) qs.set('country', country);
-        if (city) qs.set('city', city);
-
-        const res = await apiRequest<unknown>(`v1/gig/around?${qs.toString()}`, 'GET');
-        if (!isV1GigAroundGetResponseBody(res)) {
-          throw new Error('Invalid API response: expected { before: [], after: [] }');
-        }
-
-        const mappedBefore: Event[] = res.before.map((gig) =>
-          gigToEvent(gig, { resolveCountryName: (iso) => t('country', iso) }),
-        );
-        const mappedAfter: Event[] = res.after.map((gig) =>
-          gigToEvent(gig, { resolveCountryName: (iso) => t('country', iso) }),
-        );
-
-        // Reset the window around the target date so cursors stay consistent.
-        setPrevCursor(res.prevCursor);
-        setNextCursor(res.nextCursor);
-
-        const windowEvents = mergeUniqueSorted(mappedBefore, mappedAfter);
-        setEvents(windowEvents);
+        const windowEvents = await fetchAroundAndReplace(key);
 
         await new Promise<void>((r) => requestAnimationFrame(() => r()));
         target = document.querySelector<HTMLElement>(`[data-date="${key}"]`);
@@ -363,7 +448,7 @@ export default function FeedClient(props: FeedClientProps) {
         inFlightJumpRef.current = false;
       }
     },
-    [city, country, events, headerH, mergeUniqueSorted, t],
+    [events, fetchAroundAndReplace, headerH],
   );
 
   useFeedHeaderConfigSync({
