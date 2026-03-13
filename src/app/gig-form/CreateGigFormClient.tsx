@@ -29,7 +29,6 @@ export default function CreateGigFormClient({ countries }: CreateGigFormClientPr
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isLookingUp, setIsLookingUp] = useState<boolean>(false);
-  const [posterMode, setPosterMode] = useState<'upload' | 'url'>('upload');
   const [posterFile, setPosterFile] = useState<File | null>(null);
   const [posterUrl, setPosterUrl] = useState<string>('');
   const posterFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -49,10 +48,10 @@ export default function CreateGigFormClient({ countries }: CreateGigFormClientPr
     router.replace(`/gig-form/${encodeURIComponent(token)}/edit`);
   }, [router]);
 
-  function clearPosterFileInput() {
+  function clearPoster() {
     setPosterFile(null);
+    setPosterUrl('');
     if (posterFileInputRef.current) {
-      // Allows re-selecting the same file after submit/error
       posterFileInputRef.current.value = '';
     }
   }
@@ -72,6 +71,7 @@ export default function CreateGigFormClient({ countries }: CreateGigFormClientPr
         ticketsUrl: values.ticketsUrl,
       };
 
+      const posterMode = posterFile ? 'upload' : 'url';
       if (posterMode === 'url' && posterUrl.trim()) {
         try {
           new URL(posterUrl.trim());
@@ -104,8 +104,7 @@ export default function CreateGigFormClient({ countries }: CreateGigFormClientPr
         city: currentCity,
         country: currentCountry,
       });
-      setPosterUrl('');
-      clearPosterFileInput();
+      clearPoster();
     } catch (e) {
       const message =
         e instanceof Error
@@ -167,17 +166,14 @@ export default function CreateGigFormClient({ countries }: CreateGigFormClientPr
         const nextPosterUrl = data.posterUrl.trim();
         try {
           new URL(nextPosterUrl);
-          clearPosterFileInput();
-          setPosterMode('url');
+          setPosterFile(null);
           setPosterUrl(nextPosterUrl);
         } catch {
-          // Still surface what the model returned so it can be corrected manually.
-          clearPosterFileInput();
-          setPosterMode('url');
+          setPosterFile(null);
           setPosterUrl(nextPosterUrl);
           toast({
             title: 'Invalid poster URL',
-            description: 'Poster mode was switched to URL — please review/fix the link.',
+            description: 'Please review/fix the poster link.',
             variant: 'destructive',
           });
         }
@@ -219,13 +215,11 @@ export default function CreateGigFormClient({ countries }: CreateGigFormClientPr
 
               <PosterField
                 variant="create"
-                mode={posterMode}
-                onModeChange={setPosterMode}
                 posterFile={posterFile}
                 onPosterFileChange={setPosterFile}
                 posterUrl={posterUrl}
                 onPosterUrlChange={setPosterUrl}
-                onClearPosterFile={clearPosterFileInput}
+                onClearPoster={clearPoster}
                 posterFileInputRef={posterFileInputRef}
               />
 

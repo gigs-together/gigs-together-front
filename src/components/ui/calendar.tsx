@@ -8,18 +8,30 @@ import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>
+export interface CalendarDisabledMonthNavTitle {
+  prev?: string
+  next?: string
+}
+
+export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
+  disabledMonthNavTitle?: CalendarDisabledMonthNavTitle
+}
 
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
   weekStartsOn = 1,
+  disabledMonthNavTitle,
   ...props
 }: CalendarProps) {
   const navButton = cn(
     buttonVariants({ variant: "outline" }),
     "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
+  )
+  const navButtonDisabled = cn(
+    buttonVariants({ variant: "outline" }),
+    "h-7 w-7 bg-transparent p-0 opacity-50 hover:bg-transparent hover:text-foreground"
   )
 
   const MonthCaption = ({
@@ -51,30 +63,48 @@ function Calendar({
           {caption}
         </div>
         <div className="space-x-1 flex items-center">
-          <button
-            name="previous-month"
-            aria-label={labels.labelPrevious(previousMonth)}
-            className={cn(navButton, "absolute left-1 top-0")}
-            type="button"
-            disabled={!previousMonth}
-            onClick={() => {
-              if (previousMonth) goToMonth(previousMonth)
-            }}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
-            name="next-month"
-            aria-label={labels.labelNext(nextMonth, dateLibOptions)}
-            className={cn(navButton, "absolute right-1 top-0")}
-            type="button"
-            disabled={!nextMonth}
-            onClick={() => {
-              if (nextMonth) goToMonth(nextMonth)
-            }}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
+          {!previousMonth && disabledMonthNavTitle?.prev ? (
+            <span
+              title={disabledMonthNavTitle.prev}
+              className={cn(navButtonDisabled, "absolute left-1 top-0 inline-flex")}
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden />
+            </span>
+          ) : (
+            <button
+              name="previous-month"
+              aria-label={labels.labelPrevious(previousMonth)}
+              className={cn(navButton, "absolute left-1 top-0")}
+              type="button"
+              disabled={!previousMonth}
+              onClick={() => {
+                if (previousMonth) goToMonth(previousMonth)
+              }}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          )}
+          {!nextMonth && disabledMonthNavTitle?.next ? (
+            <span
+              title={disabledMonthNavTitle.next}
+              className={cn(navButtonDisabled, "absolute right-1 top-0 inline-flex")}
+            >
+              <ChevronRight className="h-4 w-4" aria-hidden />
+            </span>
+          ) : (
+            <button
+              name="next-month"
+              aria-label={labels.labelNext(nextMonth, dateLibOptions)}
+              className={cn(navButton, "absolute right-1 top-0")}
+              type="button"
+              disabled={!nextMonth}
+              onClick={() => {
+                if (nextMonth) goToMonth(nextMonth)
+              }}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
     )

@@ -30,7 +30,6 @@ export default function EditGigFormClient({ countries, gigPublicId }: EditGigFor
   const [loadGigError, setLoadGigError] = useState<string | null>(null);
   const [isPrefilled, setIsPrefilled] = useState<boolean>(false);
   const [reloadKey, setReloadKey] = useState<number>(0);
-  const [posterMode, setPosterMode] = useState<'upload' | 'url'>('upload');
   const [posterFile, setPosterFile] = useState<File | null>(null);
   const [posterUrl, setPosterUrl] = useState<string>('');
   const [existingPosterUrl, setExistingPosterUrl] = useState<string>('');
@@ -129,8 +128,9 @@ export default function EditGigFormClient({ countries, gigPublicId }: EditGigFor
     };
   }, [form, gigPublicId, reloadKey]);
 
-  function clearPosterFileInput() {
+  function clearPoster() {
     setPosterFile(null);
+    setPosterUrl('');
     if (posterFileInputRef.current) {
       posterFileInputRef.current.value = '';
     }
@@ -151,6 +151,7 @@ export default function EditGigFormClient({ countries, gigPublicId }: EditGigFor
         ticketsUrl: values.ticketsUrl,
       };
 
+      const posterMode = posterFile ? 'upload' : 'url';
       if (posterMode === 'url' && posterUrl.trim()) {
         try {
           new URL(posterUrl.trim());
@@ -176,9 +177,6 @@ export default function EditGigFormClient({ countries, gigPublicId }: EditGigFor
         description: 'Gig was updated.',
       });
 
-      clearPosterFileInput();
-      setPosterUrl('');
-      setPosterMode('upload');
       router.back();
     } catch (e) {
       const message =
@@ -241,16 +239,14 @@ export default function EditGigFormClient({ countries, gigPublicId }: EditGigFor
         const nextPosterUrl = data.posterUrl.trim();
         try {
           new URL(nextPosterUrl);
-          clearPosterFileInput();
-          setPosterMode('url');
+          setPosterFile(null);
           setPosterUrl(nextPosterUrl);
         } catch {
-          clearPosterFileInput();
-          setPosterMode('url');
+          setPosterFile(null);
           setPosterUrl(nextPosterUrl);
           toast({
             title: 'Invalid poster URL',
-            description: 'Poster mode was switched to URL — please review/fix the link.',
+            description: 'Please review/fix the poster link.',
             variant: 'destructive',
           });
         }
@@ -308,13 +304,11 @@ export default function EditGigFormClient({ countries, gigPublicId }: EditGigFor
 
                 <PosterField
                   variant="edit"
-                  mode={posterMode}
-                  onModeChange={setPosterMode}
                   posterFile={posterFile}
                   onPosterFileChange={setPosterFile}
                   posterUrl={posterUrl}
                   onPosterUrlChange={setPosterUrl}
-                  onClearPosterFile={clearPosterFileInput}
+                  onClearPoster={clearPoster}
                   posterFileInputRef={posterFileInputRef}
                   existingPosterUrl={existingPosterUrl}
                 />

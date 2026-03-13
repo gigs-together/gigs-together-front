@@ -1,23 +1,18 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
-import type { RefObject } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
+import type { ClipboardEvent, RefObject } from 'react';
 import { FormControl, FormDescription, FormItem } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { GigPoster } from '@/app/_components/GigPoster';
 
-type PosterMode = 'upload' | 'url';
-
 interface PosterFieldProps {
-  mode: PosterMode;
-  onModeChange: (mode: PosterMode) => void;
   posterFile: File | null;
   onPosterFileChange: (file: File | null) => void;
   posterUrl: string;
   onPosterUrlChange: (url: string) => void;
-  onClearPosterFile: () => void;
+  onClearPoster: () => void;
   posterFileInputRef: RefObject<HTMLInputElement | null>;
   existingPosterUrl?: string;
   variant?: 'create' | 'edit';
@@ -25,13 +20,11 @@ interface PosterFieldProps {
 
 export default function PosterField(props: PosterFieldProps) {
   const {
-    mode,
-    onModeChange,
     posterFile,
     onPosterFileChange,
     posterUrl,
     onPosterUrlChange,
-    onClearPosterFile,
+    onClearPoster,
     posterFileInputRef,
     existingPosterUrl,
     variant,
@@ -50,81 +43,88 @@ export default function PosterField(props: PosterFieldProps) {
     };
   }, [localPreviewUrl]);
 
-  const description = useMemo(() => {
-    if (!isEdit) {
-      return mode === 'upload' ? 'Upload an image file (max 10MB).' : 'Paste a direct image URL.';
-    }
-    return mode === 'upload'
-      ? 'Upload a new image file to replace the poster (optional).'
-      : 'Paste a new direct image URL to replace the poster (optional).';
-  }, [isEdit, mode]);
+  const previewSrc = posterFile
+    ? localPreviewUrl
+    : posterUrl?.trim()
+      ? posterUrl.trim()
+      : isEdit
+        ? existingPosterUrl
+        : undefined;
 
-  const previewSrc =
-    mode === 'upload'
-      ? localPreviewUrl
-      : posterUrl?.trim()
-        ? posterUrl.trim()
-        : isEdit
-          ? existingPosterUrl
-          : undefined;
+  const hasPoster = !!posterFile || !!posterUrl?.trim();
+
+  const handlePaste = useCallback(
+    (e: ClipboardEvent<HTMLDivElement | HTMLInputElement>) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            e.preventDefault();
+            onPosterUrlChange('');
+            onPosterFileChange(file);
+            if (posterFileInputRef.current) {
+              posterFileInputRef.current.value = '';
+            }
+            break;
+          }
+        }
+      }
+    },
+    [onPosterFileChange, onPosterUrlChange, posterFileInputRef],
+  );
+
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0] ?? null;
+      onPosterFileChange(file);
+      if (file) {
+        onPosterUrlChange('');
+      }
+    },
+    [onPosterFileChange, onPosterUrlChange],
+  );
+
+  const description = isEdit
+    ? 'Upload a new image file, paste URL, or paste image from clipboard (optional).'
+    : 'Upload an image file (max 10MB), paste URL, or paste image from clipboard.';
 
   return (
     <FormItem>
-      <div className="space-y-2">
-        <div className="text-sm font-medium leading-none">Poster:</div>
-        <ToggleGroup
-          type="single"
-          value={mode}
-          onValueChange={(v) => {
-            const next = (v as PosterMode) || mode;
-            onModeChange(next);
-            if (next === 'upload') {
-              onPosterUrlChange('');
-            } else {
-              onClearPosterFile();
-            }
-          }}
-          className="justify-start"
-        >
-          <ToggleGroupItem type="button" value="upload" aria-label="Upload poster">
-            Upload
-          </ToggleGroupItem>
-          <ToggleGroupItem type="button" value="url" aria-label="Use poster URL">
-            URL
-          </ToggleGroupItem>
-        </ToggleGroup>
-      </div>
+      <div className="text-sm font-medium leading-none">Poster:</div>
 
       <FormControl>
-        {mode === 'upload' ? (
+        <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <Input
               ref={posterFileInputRef}
               type="file"
               accept="image/*"
-              onChange={(e) => onPosterFileChange(e.target.files?.[0] ?? null)}
+              onChange={handleFileChange}
             />
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onClearPosterFile}
-              disabled={!posterFile}
-            >
+            <Button type="button" variant="secondary" onClick={onClearPoster} disabled={!hasPoster}>
               Clear
             </Button>
           </div>
-        ) : (
           <Input
             type="url"
-            placeholder={
-              isEdit
-                ? 'Paste new poster image URL (optional)'
-                : 'e.g. https://example.com/poster.jpg'
-            }
+            placeholder="Or paste poster URL or image (Ctrl+V)"
             value={posterUrl ?? ''}
-            onChange={(e) => onPosterUrlChange(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value;
+              onPosterUrlChange(v);
+              if (v.trim()) {
+                onPosterFileChange(null);
+                if (posterFileInputRef.current) {
+                  posterFileInputRef.current.value = '';
+                }
+              }
+            }}
+            onPaste={handlePaste}
           />
-        )}
+        </div>
       </FormControl>
 
       {previewSrc ? (
@@ -134,22 +134,20 @@ export default function PosterField(props: PosterFieldProps) {
       ) : null}
 
       <FormDescription>
-        {isEdit ? (
+        {isEdit && existingPosterUrl ? (
           <>
-            {existingPosterUrl ? (
-              <span>
-                Current poster:{' '}
-                <a
-                  href={existingPosterUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline underline-offset-2"
-                >
-                  open
-                </a>
-                .{' '}
-              </span>
-            ) : null}
+            <span>
+              Current poster:{' '}
+              <a
+                href={existingPosterUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2"
+              >
+                open
+              </a>
+              .{' '}
+            </span>
             {description}
           </>
         ) : (

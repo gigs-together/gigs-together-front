@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import styles from '@/app/page.module.css';
 import { toLocalYMD } from '@/lib/utils';
 import '@/app/style.css';
@@ -24,11 +24,9 @@ import {
   isV1GigAroundGetResponseBody,
   isV1GigByPublicIdGetResponseBody,
 } from './feed-client/utils';
-
-interface ScrollAnchor {
-  readonly eventId: string;
-  readonly topPx: number;
-}
+import { mergeUniqueSorted, sortEventsAsc } from './feed-client/feedEvents';
+import { usePrependScrollRestore } from './feed-client/usePrependScrollRestore';
+import { useEventHashLoader } from './feed-client/useEventHashLoader';
 
 interface FeedClientProps {
   country: string; // ISO like "es"
@@ -36,16 +34,6 @@ interface FeedClientProps {
   initialEvents?: Event[];
   initialPrevCursor?: string;
   initialNextCursor?: string;
-}
-
-function compareEventsAsc(a: Event, b: Event): number {
-  return a.date.localeCompare(b.date) || String(a.id).localeCompare(String(b.id));
-}
-
-function sortEventsAsc(input: Event[]): Event[] {
-  const next = input.slice();
-  next.sort(compareEventsAsc);
-  return next;
 }
 
 export default function FeedClient(props: FeedClientProps) {
@@ -70,16 +58,13 @@ export default function FeedClient(props: FeedClientProps) {
   const inFlightNextRef = useRef(false);
   const inFlightPrevRef = useRef(false);
   const inFlightJumpRef = useRef(false);
-  const lastMissingHashTargetRef = useRef<string | null>(null);
-  const pendingScrollRestoreRef = useRef<ScrollAnchor | null>(null);
+  const { capture: capturePrependAnchor, clear: clearPrependAnchor } = usePrependScrollRestore({
+    events,
+    headerOffsetPx: headerH ?? 0,
+  });
 
-  const mergeUniqueSorted = useCallback((base: Event[], incoming: Event[]) => {
-    const uniqueById = new Map<string, Event>();
-    for (const e of base) uniqueById.set(e.id, e);
-    for (const e of incoming) uniqueById.set(e.id, e);
-    const unique = Array.from(uniqueById.values());
-    unique.sort(compareEventsAsc);
-    return unique;
+  const bumpUserScrollSessionKey = useCallback(() => {
+    setUserScrollSessionKey((x) => x + 1);
   }, []);
 
   const fetchAroundAndReplace = useCallback(
@@ -110,7 +95,7 @@ export default function FeedClient(props: FeedClientProps) {
       setEvents(windowEvents);
       return windowEvents;
     },
-    [city, country, mergeUniqueSorted, t],
+    [city, country, t],
   );
 
   const fetchHashTargetAnchorYmd = useCallback(
@@ -132,30 +117,6 @@ export default function FeedClient(props: FeedClientProps) {
     },
     [city, country, t],
   );
-
-  const captureScrollAnchor = useCallback((): ScrollAnchor | null => {
-    const headerPx = headerH ?? 0;
-    const els = Array.from(document.querySelectorAll<HTMLElement>('[data-event-id]'));
-    if (els.length === 0) return null;
-
-    let bestBelow: { el: HTMLElement; top: number } | null = null;
-    let bestAbove: { el: HTMLElement; top: number } | null = null;
-
-    for (const el of els) {
-      const top = el.getBoundingClientRect().top - headerPx;
-      if (top >= 0) {
-        if (!bestBelow || top < bestBelow.top) bestBelow = { el, top };
-      } else {
-        if (!bestAbove || top > bestAbove.top) bestAbove = { el, top };
-      }
-    }
-
-    const target = (bestBelow ?? bestAbove)?.el;
-    const topPx = (bestBelow ?? bestAbove)?.top;
-    const eventId = target?.dataset.eventId;
-    if (!target || topPx === undefined || !eventId) return null;
-    return { eventId, topPx };
-  }, [headerH]);
 
   const fetchNextPage = useCallback(async () => {
     if (!nextCursor) return;
@@ -190,8 +151,7 @@ export default function FeedClient(props: FeedClientProps) {
     if (inFlightPrevRef.current) return;
     inFlightPrevRef.current = true;
 
-    const anchor = captureScrollAnchor();
-    if (anchor) pendingScrollRestoreRef.current = anchor;
+    capturePrependAnchor();
 
     const qs = new URLSearchParams();
     qs.set('limit', String(FEED_PAGE_SIZE));
@@ -208,7 +168,7 @@ export default function FeedClient(props: FeedClientProps) {
       );
 
       if (mapped.length === 0) {
-        pendingScrollRestoreRef.current = null;
+        clearPrependAnchor();
         setPrevCursor(undefined);
         return;
       }
@@ -225,7 +185,7 @@ export default function FeedClient(props: FeedClientProps) {
       dispatchLoading({ type: 'prev:end' });
       inFlightPrevRef.current = false;
     }
-  }, [captureScrollAnchor, city, country, mergeUniqueSorted, prevCursor, t]);
+  }, [capturePrependAnchor, city, clearPrependAnchor, country, prevCursor, t]);
 
   const fetchInitial = useCallback(
     async (cursor?: string) => {
@@ -297,60 +257,20 @@ export default function FeedClient(props: FeedClientProps) {
   });
 
   useHashAutoScroll({ events, headerOffsetPx: headerH ?? 0, extraOffsetPx: 32 });
-
-  const ensureHashTargetLoaded = useCallback(async () => {
-    if (loading.initial) return;
-
-    const hash = window.location.hash;
-    if (!hash) {
-      lastMissingHashTargetRef.current = null;
-      return;
-    }
-
-    const id = hash.startsWith('#') ? hash.slice(1) : hash;
-    if (!id) return;
-
-    const el = document.getElementById(id);
-    if (el) {
-      lastMissingHashTargetRef.current = null;
-      return;
-    }
-
-    if (inFlightJumpRef.current) return;
-    if (lastMissingHashTargetRef.current === id) return;
-    lastMissingHashTargetRef.current = id;
-
-    inFlightJumpRef.current = true;
-    dispatchLoading({ type: 'jump:start' });
-    setError(null);
-    setUserScrollSessionKey((x) => x + 1);
-
-    try {
-      const anchorYmd = await fetchHashTargetAnchorYmd(id);
+  useEventHashLoader({
+    isEnabled: !loading.initial,
+    isBusyRef: inFlightJumpRef,
+    setIsBusy: (next) => {
+      inFlightJumpRef.current = next;
+    },
+    dispatchLoading,
+    setError,
+    bumpUserScrollSessionKey,
+    resolveAnchorYmdByEventId: fetchHashTargetAnchorYmd,
+    loadAroundAndReplace: async (anchorYmd) => {
       await fetchAroundAndReplace(anchorYmd);
-
-      await new Promise<void>((r) => requestAnimationFrame(() => r()));
-      const after = document.getElementById(id);
-      if (!after) {
-        throw new Error(`Failed to locate target event after load: ${id}`);
-      }
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Failed to load event anchor.';
-      setError(message);
-    } finally {
-      dispatchLoading({ type: 'jump:end' });
-      inFlightJumpRef.current = false;
-    }
-  }, [fetchAroundAndReplace, fetchHashTargetAnchorYmd, loading.initial]);
-
-  useEffect(() => {
-    const onHashChange = () => {
-      void ensureHashTargetLoaded();
-    };
-    window.addEventListener('hashchange', onHashChange);
-    void ensureHashTargetLoaded();
-    return () => window.removeEventListener('hashchange', onHashChange);
-  }, [ensureHashTargetLoaded]);
+    },
+  });
 
   const { sentinelRef: bottomSentinelRef } = useInfiniteScroll({
     isEnabled: true,
@@ -376,23 +296,6 @@ export default function FeedClient(props: FeedClientProps) {
       eventRefs.current.delete(eventId);
     }
   }, []);
-
-  useLayoutEffect(() => {
-    const pending = pendingScrollRestoreRef.current;
-    if (!pending) return;
-
-    const headerPx = headerH ?? 0;
-    const el = document.querySelector<HTMLElement>(`[data-event-id="${pending.eventId}"]`);
-    if (!el) {
-      pendingScrollRestoreRef.current = null;
-      return;
-    }
-
-    const nextTop = el.getBoundingClientRect().top - headerPx;
-    const delta = nextTop - pending.topPx;
-    if (delta !== 0) window.scrollBy({ top: delta, behavior: 'auto' });
-    pendingScrollRestoreRef.current = null;
-  }, [events, headerH]);
 
   const handleDayClick = useCallback(
     async (day: Date) => {
@@ -423,7 +326,7 @@ export default function FeedClient(props: FeedClientProps) {
       inFlightJumpRef.current = true;
       dispatchLoading({ type: 'jump:start' });
       setError(null);
-      setUserScrollSessionKey((x) => x + 1);
+      bumpUserScrollSessionKey();
 
       try {
         const windowEvents = await fetchAroundAndReplace(key);
