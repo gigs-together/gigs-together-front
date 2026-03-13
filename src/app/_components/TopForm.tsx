@@ -102,6 +102,11 @@ const TopForm = ({
             onDayClick={handleDayClick}
             startMonth={startMonth}
             endMonth={endMonth}
+            disabledMonthNavTitle={
+              startMonth != null && endMonth != null
+                ? { prev: 'No events before this month', next: 'No events after this month' }
+                : undefined
+            }
           />
         </PopoverContent>
       </Popover>
